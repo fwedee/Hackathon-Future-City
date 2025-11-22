@@ -129,3 +129,48 @@ def delete_job(job_id: str, db: Session = Depends(get_db)):
     
     return {"message": "Job deleted successfully"}
 
+@router.get("/worker/{worker_id}/jobs", response_model=List[schemas.Job])
+def get_jobs_by_worker_id(worker_id: str, db: Session = Depends(get_db)):
+    # Verify worker exists
+    worker = db.query(Worker).filter(Worker.worker_id == worker_id).first()
+    if worker is None:
+        raise HTTPException(status_code=404, detail="Worker not found")
+    
+    # Get all jobs assigned to this worker via worker__job table
+    jobs = db.query(Job).join(Job.workers).filter(Worker.worker_id == worker_id).options(
+        joinedload(Job.item_links).joinedload(JobItem.item),
+        joinedload(Job.workers),
+        joinedload(Job.roles)
+    ).all()
+    
+    # If no jobs found, return mock jobs for demonstration - TODO remove in production
+    if not jobs:
+        from datetime import datetime, timedelta
+        now = datetime.now()
+        
+        # Create mock job data
+        mock_jobs = []
+        for i in range(3):
+            mock_job = Job(
+                job_id=f"mock-job-{i+1}",
+                job_name=f"Demo Job {i+1}",
+                job_description=f"This is a demonstration job #{i+1}",
+                longitude=13.404954 + (i * 0.1),
+                latitude=52.520008 + (i * 0.1),
+                country="Germany",
+                city="Berlin",
+                street="Demo Street",
+                house_number=str(100 + i),
+                postal_code="10178",
+                start_datetime=now + timedelta(days=i+1, hours=8),
+                end_datetime=now + timedelta(days=i+1, hours=16)
+            )
+            mock_job.workers = []
+            mock_job.item_links = []
+            mock_job.roles = []
+            mock_jobs.append(mock_job)
+        
+        return mock_jobs
+    
+    return jobs
+

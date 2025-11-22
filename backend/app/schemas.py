@@ -2,9 +2,36 @@ from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
+class BranchBase(BaseModel):
+    branch_id: str
+    branch_name: Optional[str] = None
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+
+    class Config:
+        from_attributes = True
+
+class RoleBase(BaseModel):
+    role_name: str
+    role_description: Optional[str] = None
+
+class RoleCreate(RoleBase):
+    pass
+
+class Role(RoleBase):
+    role_id: str
+
+    class Config:
+        from_attributes = True
+
 class WorkerBase(BaseModel):
     worker_id: str
-    # Add other worker fields if necessary, for now we just need the ID to link
+    worker_first_name: Optional[str] = None
+    worker_last_name: Optional[str] = None
+    worker_phone_number: Optional[str] = None
+    fk_branch_id: Optional[str] = None
+    branch: Optional[BranchBase] = None
+    roles: List[Role] = []
 
     class Config:
         from_attributes = True
@@ -19,19 +46,6 @@ class ItemCreate(ItemBase):
 class Item(ItemBase):
     item_id: str
     fk_branch_id: Optional[str] = None
-
-    class Config:
-        from_attributes = True
-
-class RoleBase(BaseModel):
-    role_name: str
-    role_description: Optional[str] = None
-
-class RoleCreate(RoleBase):
-    pass
-
-class Role(RoleBase):
-    role_id: str
 
     class Config:
         from_attributes = True

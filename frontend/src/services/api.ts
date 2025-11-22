@@ -6,10 +6,21 @@ const api = axios.create({
     baseURL: API_URL,
 });
 
+export interface Branch {
+    branch_id: string;
+    branch_name?: string;
+    latitude?: number;
+    longitude?: number;
+}
+
 export interface Worker {
     worker_id: string;
-    name?: string;
+    worker_first_name?: string;
+    worker_last_name?: string;
+    worker_phone_number?: string;
     fk_branch_id?: string;
+    branch?: Branch;
+    roles?: Role[];
 }
 
 export interface Item {
@@ -68,6 +79,16 @@ export interface Job {
 
 export const fetchWorkers = async (): Promise<Worker[]> => {
     const response = await api.get('/workers');
+    return response.data;
+};
+
+export const fetchWorker = async (workerId: string): Promise<Worker> => {
+    const response = await api.get(`/workers/${workerId}`);
+    return response.data;
+};
+
+export const fetchJobsByWorkerId = async (workerId: string): Promise<Job[]> => {
+    const response = await api.get(`/worker/${workerId}/jobs`);
     return response.data;
 };
 
