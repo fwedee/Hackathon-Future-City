@@ -29,6 +29,14 @@ backend:
         - New Auftrag
     "/auftrag/{auftragId} - Auftrag Page (planer)
 
-- API Endpoint:
-    "get"
-    
+- API Endpoints:
+  - **Planner**
+    - "createJob" input: jobId -> [POST] Creates a Job
+    - "updateJob" input: jobId -> [PUT] Updates a Job
+    - "deleteJob" input: jobId -> [DELETE] Deletes a Job
+    - "getJobs" -> [GET] Get all jobs
+    - "getJobByJobId" input: jobId -> [GET] Get single Job
+    - "filterJobs" input: { where } -> [GET] Get filtered Jobs
+
+  - **Worker**
+    - "getJobByWorkerId" input: workerId -> [GET] Get current job
