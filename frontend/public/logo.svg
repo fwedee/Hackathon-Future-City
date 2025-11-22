@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="600" height="600" viewBox="0 0 600 600" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+  <defs>
+    <linearGradient id="grad1" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0b66c1"/>
+      <stop offset="55%" stop-color="#1297d1"/>
+      <stop offset="100%" stop-color="#15e092"/>
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#000" flood-opacity="0.18"/>
+    </filter>
+  </defs>
+
+  <!-- soft background square (transparent) -->
+  <rect width="100%" height="100%" fill="none"/>
+
+  <!-- Stylized curved 'L' with arrow tip -->
+  <g filter="url(#shadow)">
+    <path d="M140 380
+             C140 220, 280 170, 360 170
+             C440 170, 520 220, 520 260
+             L520 260
+             C520 280, 500 290, 485 280
+             L438 246
+             L496 196
+             L556 256
+             L518 294
+             C500 315, 480 330, 360 330
+             C260 330, 200 360, 140 380 Z"
+          fill="url(#grad1)"/>
+  </g>
+
+  <!-- a small inner highlight to emulate layered gradient shapes -->
+  <path d="M160 360
+           C160 230, 290 200, 360 200
+           C430 200, 500 240, 500 260
+           C500 270, 480 280, 468 273
+           C420 248, 470 200, 512 248
+           C500 256, 480 270, 360 300
+           C270 315, 210 340, 160 360 Z"
+        fill="#6fd1d3" fill-opacity="0.18"/>
+
+  <!-- Text: LogiStream -->
+  <text x="300" y="480" font-family="'Segoe UI', Roboto, Arial, sans-serif" font-weight="700" font-size="48" text-anchor="middle" fill="#0b3f80">LogiStream</text>
+
+  <!-- Optional tagline (hidden by default) -->
+  <!-- <text x="300" y="512" font-family="'Segoe UI', Roboto, Arial, sans-serif" font-size="14" text-anchor="middle" fill="#3b5c90">Logistics made simple</text> -->
+
+</svg>
