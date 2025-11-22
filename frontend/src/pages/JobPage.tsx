@@ -290,7 +290,18 @@ const JobDetailsPage: React.FC = () => {
                                                 <ListItemText
                                                     primary={
                                                         <Stack direction="row" alignItems="center" spacing={1}>
-                                                            <Typography variant="body1" sx={{ fontWeight: 500 }}>{link.item.item_name}</Typography>
+                                                            <Link
+                                                                component={RouterLink}
+                                                                to={`/items/${link.item_id}`}
+                                                                sx={{
+                                                                    color: 'var(--primary)',
+                                                                    textDecoration: 'none',
+                                                                    fontWeight: 500,
+                                                                    '&:hover': { textDecoration: 'underline' }
+                                                                }}
+                                                            >
+                                                                {link.item.item_name}
+                                                            </Link>
                                                             <Chip label={`x${link.required_quantity}`} size="small" sx={{ height: 20, fontSize: '0.75rem', backgroundColor: 'var(--border)', color: 'var(--text)' }} />
                                                         </Stack>
                                                     }

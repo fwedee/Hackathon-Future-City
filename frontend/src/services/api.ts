@@ -28,6 +28,7 @@ export interface Item {
     item_name?: string;
     item_description?: string;
     fk_branch_id?: string;
+    total_stock?: number;
 }
 
 export interface Role {
@@ -94,6 +95,16 @@ export const fetchJobsByWorkerId = async (workerId: string): Promise<Job[]> => {
 
 export const fetchItems = async (): Promise<Item[]> => {
     const response = await api.get('/items');
+    return response.data;
+};
+
+export const fetchItem = async (itemId: string): Promise<Item> => {
+    const response = await api.get(`/items/${itemId}`);
+    return response.data;
+};
+
+export const fetchJobsByItemId = async (itemId: string): Promise<Job[]> => {
+    const response = await api.get(`/item/${itemId}/jobs`);
     return response.data;
 };
 

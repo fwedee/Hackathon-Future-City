@@ -46,6 +46,7 @@ class ItemCreate(ItemBase):
 class Item(ItemBase):
     item_id: str
     fk_branch_id: Optional[str] = None
+    total_stock: int = 0
 
     class Config:
         from_attributes = True

@@ -11,6 +11,7 @@ import WorkerPage from './pages/WorkerPage'
 import Dashboard from './pages/DashboardPage'
 import ItemPage from './pages/ItemPage'
 
+
 const App: React.FC = () => {
     return (
         <BrowserRouter>
@@ -26,6 +27,7 @@ const App: React.FC = () => {
                     <Route path="workers/:id" element={<WorkerPage />} />
                     <Route path="items" element={<ItemsPage />} />
                     <Route path="items/:id" element={<ItemPage />} />
+
                     <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Route>
             </Routes>
