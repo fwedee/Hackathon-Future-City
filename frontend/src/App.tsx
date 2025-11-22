@@ -1,7 +1,6 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Layout from './components/Layout'
-import HomePage from './pages/HomePage'
 import JobsPage from './pages/JobsPage'
 import JobsListPage from './pages/JobsListPage'
 import JobEditPage from './pages/JobEditPage'
@@ -16,7 +15,8 @@ const App: React.FC = () => {
         <BrowserRouter>
             <Routes>
                 <Route path="/" element={<Layout />}>
-                    <Route index element={<HomePage />} />
+                    <Route index element={<Navigate to="/dashboard" replace />} />
+                    <Route path="dashboard" element={<Dashboard />} />
                     <Route path="jobs" element={<JobsListPage />} />
                     <Route path="job/create" element={<JobsPage />} />
                     <Route path="jobs/:id" element={<JobDetailsPage />} />
@@ -24,9 +24,8 @@ const App: React.FC = () => {
                     <Route path="workers" element={<WorkersPage />} />
                     <Route path="workers/:id" element={<WorkerPage />} />
                     <Route path="items" element={<ItemsPage />} />
-                    <Route path="dashboard" element={<Dashboard />} />
+                    <Route path="*" element={<Navigate to="/dashboard" replace />} />
                 </Route>
-                <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </BrowserRouter>
     )
