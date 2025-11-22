@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.models.models import Job, Item, Worker, Role, JobItem
 from app import schemas
+from app.services.planner_service import fetch_and_run_planner
 
 router = APIRouter()
 
@@ -44,6 +45,13 @@ def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
     db.add(db_job)
     db.commit()
     db.refresh(db_job)
+    
+    # Run planner to update assignments
+    try:
+        fetch_and_run_planner(db, debug=True)
+    except Exception as e:
+        # Log error but don't fail job creation
+        print(f"Planner error: {e}")
     
     # Reload with eager loading to populate item_links.item
     db_job = db.query(Job).options(joinedload(Job.item_links).joinedload(JobItem.item)).filter(Job.job_id == db_job.job_id).first()
@@ -92,6 +100,13 @@ def update_job(job_id: str, job: schemas.JobCreate, db: Session = Depends(get_db
     db.commit()
     db.refresh(db_job)
     
+    # Run planner to update assignments
+    try:
+        fetch_and_run_planner(db, debug=True)
+    except Exception as e:
+        # Log error but don't fail job update
+        print(f"Planner error: {e}")
+    
     # Reload with eager loading to populate item_links.item
     db_job = db.query(Job).options(joinedload(Job.item_links).joinedload(JobItem.item)).filter(Job.job_id == job_id).first()
     return db_job
@@ -104,5 +119,13 @@ def delete_job(job_id: str, db: Session = Depends(get_db)):
     
     db.delete(db_job)
     db.commit()
+    
+    # Run planner to update assignments for remaining jobs
+    try:
+        fetch_and_run_planner(db, debug=True)
+    except Exception as e:
+        # Log error but don't fail job deletion
+        print(f"Planner error: {e}")
+    
     return {"message": "Job deleted successfully"}
 

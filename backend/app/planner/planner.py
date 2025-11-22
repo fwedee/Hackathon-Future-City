@@ -1,6 +1,6 @@
 from collections import defaultdict
 from datetime import timedelta
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Optional
 
 from ortools.sat.python import cp_model
 
@@ -12,9 +12,12 @@ from .util import (
     fits_in_8hour_shift
 )
 
+# Global cache for previous solution (warm start)
+_previous_solution: Optional[Dict] = None
+
 
 def compute_plan(planner_input: PlannerInput, 
-                max_time_seconds: float = 30.0) -> Dict:
+                max_time_seconds: float = 5.0) -> Dict:
     """
     Compute optimal worker and stock assignments to jobs using OR-Tools CP-SAT solver.
     
@@ -43,6 +46,8 @@ def compute_plan(planner_input: PlannerInput,
             "solve_time": float
         }
     """
+    global _previous_solution
+    
     jobs = planner_input.jobs
     workers = planner_input.workers
     stocks = planner_input.stocks
@@ -50,68 +55,110 @@ def compute_plan(planner_input: PlannerInput,
     # Build branch lookup
     branch_map = {b.branch_id: b for b in planner_input.branches}
     
+    # === Pre-compute distance matrices (CRITICAL OPTIMIZATION) ===
+    worker_job_distances = {}
+    worker_branches = {}
+    for w_idx, worker in enumerate(workers):
+        branch = branch_map.get(worker.branch_id)
+        if branch:
+            worker_branches[w_idx] = branch
+            for j_idx, job in enumerate(jobs):
+                dist = haversine_distance(
+                    branch.latitude, branch.longitude,
+                    job.latitude, job.longitude
+                )
+                worker_job_distances[(w_idx, j_idx)] = dist
+    
+    stock_job_distances = {}
+    stock_branches = {}
+    for s_idx, stock in enumerate(stocks):
+        branch = branch_map.get(stock.branch_id)
+        if branch:
+            stock_branches[s_idx] = branch
+            for j_idx, job in enumerate(jobs):
+                dist = haversine_distance(
+                    branch.latitude, branch.longitude,
+                    job.latitude, job.longitude
+                )
+                stock_job_distances[(s_idx, j_idx)] = dist
+    
+    # Pre-compute job time intervals
+    job_intervals = {j_idx: (job.start_datetime, job.end_datetime) for j_idx, job in enumerate(jobs)}
+    
+    # Pre-compute worker roles lookup
+    worker_roles = {w_idx: set(worker.roles) for w_idx, worker in enumerate(workers)}
+    
+    # Pre-compute stock-item mapping
+    stock_items = {s_idx: stock.item_id for s_idx, stock in enumerate(stocks)}
+    
     # Create CP-SAT model
     model = cp_model.CpModel()
     
     # === Variables ===
     
     # worker_job[w][j] = 1 if worker w is assigned to job j
+    # Only create variables for feasible assignments (distance < 200km)
     worker_job = {}
+    feasible_worker_jobs = set()
     for w_idx, worker in enumerate(workers):
         worker_job[w_idx] = {}
         for j_idx, job in enumerate(jobs):
-            worker_job[w_idx][j_idx] = model.NewBoolVar(f'worker_{w_idx}_job_{j_idx}')
+            distance = worker_job_distances.get((w_idx, j_idx), 999)
+            if distance < 200:  # Filter infeasible long-distance assignments
+                worker_job[w_idx][j_idx] = model.NewBoolVar(f'worker_{w_idx}_job_{j_idx}')
+                feasible_worker_jobs.add((w_idx, j_idx))
+            else:
+                # Create constant 0 for infeasible assignments
+                worker_job[w_idx][j_idx] = model.NewConstant(0)
     
     # stock_job[s][j] = quantity of stock s assigned to job j
+    # Only create variables for relevant stock-job pairs
     stock_job = {}
+    feasible_stock_jobs = {}
     for s_idx, stock in enumerate(stocks):
         stock_job[s_idx] = {}
         for j_idx, job in enumerate(jobs):
-            # Max quantity is either stock available or job requirement
-            max_qty = min(
-                stock.quantity,
-                job.required_items.get(stock.item_id, 0)
-            )
-            if max_qty > 0:
+            # Only create var if job needs this item AND stock has it
+            job_needs_qty = job.required_items.get(stock.item_id, 0)
+            if job_needs_qty > 0 and stock.quantity > 0:
+                max_qty = min(stock.quantity, job_needs_qty)
                 stock_job[s_idx][j_idx] = model.NewIntVar(
                     0, max_qty, f'stock_{s_idx}_job_{j_idx}_qty'
                 )
+                feasible_stock_jobs[(s_idx, j_idx)] = max_qty
             else:
-                stock_job[s_idx][j_idx] = model.NewIntVar(0, 0, f'stock_{s_idx}_job_{j_idx}_qty')
+                stock_job[s_idx][j_idx] = model.NewConstant(0)
     
     # === Constraints ===
     
     # 1. Role requirements: each job must have workers with required roles
     for j_idx, job in enumerate(jobs):
         for role_id, required_count in job.required_roles.items():
-            # Count workers assigned to this job that have this role
+            # Count workers assigned to this job that have this role (optimized lookup)
             workers_with_role = [
                 worker_job[w_idx][j_idx]
-                for w_idx, worker in enumerate(workers)
-                if role_id in worker.roles
+                for w_idx in range(len(workers))
+                if role_id in worker_roles.get(w_idx, set())
             ]
             if workers_with_role:
                 model.Add(sum(workers_with_role) >= required_count)
     
-    # 2. Worker time constraints: no overlapping jobs
-    for w_idx, worker in enumerate(workers):
+    # 2. Worker time constraints: no overlapping jobs (optimized)
+    for w_idx in range(len(workers)):
         for j1_idx in range(len(jobs)):
             for j2_idx in range(j1_idx + 1, len(jobs)):
-                job1 = jobs[j1_idx]
-                job2 = jobs[j2_idx]
+                start1, end1 = job_intervals[j1_idx]
+                start2, end2 = job_intervals[j2_idx]
                 
                 # If jobs overlap in time, worker can't do both
-                if time_intervals_overlap(
-                    job1.start_datetime, job1.end_datetime,
-                    job2.start_datetime, job2.end_datetime
-                ):
+                if time_intervals_overlap(start1, end1, start2, end2):
                     model.Add(
                         worker_job[w_idx][j1_idx] + worker_job[w_idx][j2_idx] <= 1
                     )
     
-    # 3. Worker 8-hour shift constraint
+    # 3. Worker 8-hour shift constraint (optimized with cached branches)
     for w_idx, worker in enumerate(workers):
-        branch = branch_map.get(worker.branch_id)
+        branch = worker_branches.get(w_idx)
         if not branch:
             continue
         
@@ -125,22 +172,8 @@ def compute_plan(planner_input: PlannerInput,
                 # Constraint: cannot assign this worker to this job
                 model.Add(worker_job[w_idx][j_idx] == 0)
     
-    # 4. Worker reachability constraint
-    for w_idx, worker in enumerate(workers):
-        branch = branch_map.get(worker.branch_id)
-        if not branch:
-            continue
-        
-        for j_idx, job in enumerate(jobs):
-            # Assume worker starts from branch at shift start
-            # Simple check: distance not too far for job start time
-            distance = haversine_distance(
-                branch.latitude, branch.longitude,
-                job.latitude, job.longitude
-            )
-            # If distance > 200km, too far for typical daily assignment
-            if distance > 200:
-                model.Add(worker_job[w_idx][j_idx] == 0)
+    # 4. Worker reachability constraint (already handled in variable creation)
+    # Variables for distance > 200km are set to constant 0
     
     # 5. Stock availability: each stock unit can only be assigned once
     for s_idx, stock in enumerate(stocks):
@@ -162,53 +195,52 @@ def compute_plan(planner_input: PlannerInput,
             if stocks_for_item:
                 model.Add(sum(stocks_for_item) >= required_qty)
     
-    # 7. Stock proximity preference (soft constraint via objective)
+    # 7. Stock proximity preference (soft constraint via objective) - optimized
     # Prefer stocks closer to jobs
     stock_distance_costs = []
-    for s_idx, stock in enumerate(stocks):
-        branch = branch_map.get(stock.branch_id)
-        if not branch:
-            continue
-        
-        for j_idx, job in enumerate(jobs):
-            distance = haversine_distance(
-                branch.latitude, branch.longitude,
-                job.latitude, job.longitude
+    for (s_idx, j_idx), max_qty in feasible_stock_jobs.items():
+        distance = stock_job_distances.get((s_idx, j_idx), 0)
+        # Cost is distance * quantity assigned (in units of 10km)
+        cost_per_unit = int(distance / 10)
+        if cost_per_unit > 0:
+            stock_distance_costs.append(
+                stock_job[s_idx][j_idx] * cost_per_unit
             )
-            # Cost is distance * quantity assigned (in units of 10km)
-            cost_per_unit = int(distance / 10)
-            if cost_per_unit > 0:
-                stock_distance_costs.append(
-                    stock_job[s_idx][j_idx] * cost_per_unit
-                )
     
-    # 8. Worker distance preference (soft constraint via objective)
+    # 8. Worker distance preference (soft constraint via objective) - optimized
     worker_distance_costs = []
-    for w_idx, worker in enumerate(workers):
-        branch = branch_map.get(worker.branch_id)
-        if not branch:
-            continue
-        
-        for j_idx, job in enumerate(jobs):
-            distance = haversine_distance(
-                branch.latitude, branch.longitude,
-                job.latitude, job.longitude
+    for (w_idx, j_idx) in feasible_worker_jobs:
+        distance = worker_job_distances.get((w_idx, j_idx), 0)
+        # Cost in units of 10km
+        cost = int(distance / 10)
+        if cost > 0:
+            worker_distance_costs.append(
+                worker_job[w_idx][j_idx] * cost
             )
-            # Cost in units of 10km
-            cost = int(distance / 10)
-            if cost > 0:
-                worker_distance_costs.append(
-                    worker_job[w_idx][j_idx] * cost
-                )
     
     # === Objective: Minimize total distance (prefer nearby assignments) ===
     total_cost = sum(stock_distance_costs) + sum(worker_distance_costs)
     model.Minimize(total_cost)
     
+    # === Warm Start (seed with previous solution) ===
+    if _previous_solution:
+        for (w_idx, j_idx) in feasible_worker_jobs:
+            worker_id = workers[w_idx].worker_id
+            job_id = jobs[j_idx].job_id
+            prev_val = _previous_solution.get(('worker', worker_id, job_id), 0)
+            model.AddHint(worker_job[w_idx][j_idx], prev_val)
+        
+        for (s_idx, j_idx) in feasible_stock_jobs.keys():
+            stock_id = stocks[s_idx].stock_id
+            job_id = jobs[j_idx].job_id
+            prev_val = _previous_solution.get(('stock', stock_id, job_id), 0)
+            model.AddHint(stock_job[s_idx][j_idx], prev_val)
+    
     # === Solve ===
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = max_time_seconds
     solver.parameters.log_search_progress = False
+    solver.parameters.num_search_workers = 4  # Parallel search
     
     status = solver.Solve(model)
     
@@ -220,6 +252,9 @@ def compute_plan(planner_input: PlannerInput,
     }
     
     if status in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+        # Store solution for warm start
+        new_solution = {}
+        
         for j_idx, job in enumerate(jobs):
             job_result = {
                 "workers": [],
@@ -228,8 +263,11 @@ def compute_plan(planner_input: PlannerInput,
             
             # Extract assigned workers
             for w_idx, worker in enumerate(workers):
-                if solver.Value(worker_job[w_idx][j_idx]) == 1:
+                val = solver.Value(worker_job[w_idx][j_idx])
+                if val == 1:
                     job_result["workers"].append(worker.worker_id)
+                    # Store for warm start
+                    new_solution[('worker', worker.worker_id, job.job_id)] = val
             
             # Extract assigned stocks
             for s_idx, stock in enumerate(stocks):
@@ -239,8 +277,13 @@ def compute_plan(planner_input: PlannerInput,
                         "stock_id": stock.stock_id,
                         "quantity": qty
                     })
+                    # Store for warm start
+                    new_solution[('stock', stock.stock_id, job.job_id)] = qty
             
             result["jobs"][job.job_id] = job_result
+        
+        # Update global cache for next run
+        _previous_solution = new_solution
     
     return result
 
