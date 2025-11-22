@@ -89,3 +89,10 @@ class Job(JobBase):
 
     class Config:
         from_attributes = True
+
+class AskRequest(BaseModel):
+    pageContext: str
+    question: str
+
+class AskResponse(BaseModel):
+    answer: str
