@@ -147,3 +147,17 @@ export const deleteJob = async (jobId: string) => {
     const response = await api.delete(`/jobs/${jobId}`);
     return response.data;
 };
+
+export interface AskRequest {
+    pageContext: string;
+    question: string;
+}
+
+export interface AskResponse {
+    answer: string;
+}
+
+export const askAI = async (request: AskRequest): Promise<AskResponse> => {
+    const response = await api.post('/ask', request);
+    return response.data;
+};

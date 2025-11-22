@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
-import { fetchJobs, fetchWorkers, type Job, type Worker } from '../services/api';
+import { fetchJobs, fetchWorkers, askAI, type Job, type Worker } from '../services/api';
 import dayjs from 'dayjs';
 import {
     Box,
@@ -30,6 +30,8 @@ import OperationsMap from '../components/OperationsMap';
 
 const Dashboard: React.FC = () => {
     const [aiInput, setAiInput] = useState('');
+    const [aiAnswer, setAiAnswer] = useState<string>('');
+    const [isAiLoading, setIsAiLoading] = useState(false);
     const [jobs, setJobs] = useState<Job[]>([]);
     const [workers, setWorkers] = useState<Worker[]>([]);
 
@@ -49,11 +51,52 @@ const Dashboard: React.FC = () => {
         loadData();
     }, []);
 
-    const handleAiSubmit = (e: React.FormEvent) => {
+    const handleAiSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        console.log('AI Command:', aiInput);
-        setAiInput('');
-        // In a real app, this would trigger an API call
+        if (!aiInput.trim()) return;
+
+        setIsAiLoading(true);
+        
+        // Build page context from current state
+        const pageContext = JSON.stringify({
+            totalJobs: jobs.length,
+            totalWorkers: workers.length,
+            activeWorkers: activeWorkersCount,
+            unassignedJobs: unassignedJobsCount,
+            upcomingJobs: upcomingJobs.map(j => ({
+                name: j.job_name,
+                time: j.start_datetime,
+                workers: j.workers?.map(w => `${w.worker_first_name} ${w.worker_last_name}`).join(', ') || 'Unassigned'
+            })),
+            jobs: jobs.map(j => ({
+                id: j.job_id,
+                name: j.job_name,
+                location: `${j.street || ''} ${j.city || ''}`.trim(),
+                startTime: j.start_datetime,
+                assignedWorkers: j.workers?.length || 0,
+                roles: j.roles?.map(r => r.role_name).join(', ') || 'None'
+            })),
+            workers: workers.map(w => ({
+                id: w.worker_id,
+                name: `${w.worker_first_name || ''} ${w.worker_last_name || ''}`.trim(),
+                branch: w.branch?.branch_name || 'Unknown',
+                roles: w.roles?.map(r => r.role_name).join(', ') || 'None'
+            }))
+        }, null, 2);
+
+        try {
+            const response = await askAI({
+                pageContext,
+                question: aiInput
+            });
+            setAiAnswer(response.answer);
+            setAiInput('');
+        } catch (error) {
+            console.error('AI request failed:', error);
+            setAiAnswer('Sorry, I encountered an error processing your request.');
+        } finally {
+            setIsAiLoading(false);
+        }
     };
 
     // Filter and sort upcoming jobs
@@ -289,16 +332,36 @@ const Dashboard: React.FC = () => {
                                 fullWidth
                                 variant="contained"
                                 type="submit"
-                                endIcon={<Send />}
+                                disabled={isAiLoading || !aiInput.trim()}
+                                endIcon={isAiLoading ? null : <Send />}
                                 sx={{
                                     bgcolor: 'var(--primary)',
                                     color: 'var(--bg-dark)',
-                                    '&:hover': { bgcolor: 'var(--highlight)' }
+                                    '&:hover': { bgcolor: 'var(--highlight)' },
+                                    '&.Mui-disabled': { bgcolor: 'var(--border)', color: 'var(--text-muted)' }
                                 }}
                             >
-                                Process
+                                {isAiLoading ? 'Processing...' : 'Process'}
                             </Button>
                         </form>
+                        {aiAnswer && (
+                            <Box
+                                sx={{
+                                    mt: 2,
+                                    p: 2,
+                                    bgcolor: 'var(--bg)',
+                                    border: '1px solid var(--border)',
+                                    borderRadius: 1,
+                                }}
+                            >
+                                <Typography variant="caption" sx={{ color: 'var(--text-muted)', display: 'block', mb: 0.5 }}>
+                                    AI Response:
+                                </Typography>
+                                <Typography variant="body2" sx={{ color: 'var(--text)', whiteSpace: 'pre-wrap' }}>
+                                    {aiAnswer}
+                                </Typography>
+                            </Box>
+                        )}
                     </Paper>
 
                     {/* Route Optimization */}
