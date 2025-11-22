@@ -2,6 +2,7 @@ import uuid
 from datetime import datetime, timedelta
 from app.core.database import SessionLocal
 from app.models import models
+from app.services.planner_service import fetch_and_run_planner
 
 
 def seed_database():
@@ -291,6 +292,11 @@ def seed_database():
         print(f"  - {len(items)} items")
         print(f"  - {len(stocks)} stocks")
         print(f"  - {len(jobs)} jobs")
+        
+        # Run planner
+        print("\nRunning planner to assign workers...")
+        fetch_and_run_planner(db, debug=True)
+        print("Planner completed.")
         
     except Exception as e:
         print(f"Error seeding database: {e}")

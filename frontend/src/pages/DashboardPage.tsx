@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Link as RouterLink } from 'react-router-dom';
+import { fetchJobs, fetchWorkers, type Job, type Worker } from '../services/api';
+import dayjs from 'dayjs';
 import {
     Box,
     Grid,
@@ -12,9 +15,9 @@ import {
     ListItemIcon,
     Chip,
     Divider,
+    Link,
 } from '@mui/material';
 import {
-    Map as MapIcon,
     LocalShipping,
     AccessTime,
     CheckCircle,
@@ -23,9 +26,28 @@ import {
     Timeline,
     TrendingUp,
 } from '@mui/icons-material';
+import OperationsMap from '../components/OperationsMap';
 
 const Dashboard: React.FC = () => {
     const [aiInput, setAiInput] = useState('');
+    const [jobs, setJobs] = useState<Job[]>([]);
+    const [workers, setWorkers] = useState<Worker[]>([]);
+
+    useEffect(() => {
+        const loadData = async () => {
+            try {
+                const [jobsData, workersData] = await Promise.all([
+                    fetchJobs(),
+                    fetchWorkers()
+                ]);
+                setJobs(jobsData);
+                setWorkers(workersData);
+            } catch (error) {
+                console.error("Failed to load dashboard data", error);
+            }
+        };
+        loadData();
+    }, []);
 
     const handleAiSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -33,6 +55,12 @@ const Dashboard: React.FC = () => {
         setAiInput('');
         // In a real app, this would trigger an API call
     };
+
+    // Filter and sort upcoming jobs
+    const upcomingJobs = jobs
+        .filter(job => job.start_datetime && dayjs(job.start_datetime).isAfter(dayjs()))
+        .sort((a, b) => dayjs(a.start_datetime).diff(dayjs(b.start_datetime)))
+        .slice(0, 3);
 
     return (
         <Box sx={{ flexGrow: 1, p: 3, color: 'var(--text)' }}>
@@ -54,9 +82,9 @@ const Dashboard: React.FC = () => {
             {/* Stats Cards */}
             <Grid container spacing={3} sx={{ mb: 4 }}>
                 {[
-                    { title: 'Active Fleet', value: '12/15', icon: <LocalShipping />, color: 'var(--primary)' },
+                    { title: 'Active Fleet', value: `${workers.length}/15`, icon: <LocalShipping />, color: 'var(--primary)' },
                     { title: 'On-Time Rate', value: '98.5%', icon: <CheckCircle />, color: 'var(--success)' },
-                    { title: 'Pending Jobs', value: '24', icon: <AccessTime />, color: 'var(--warning)' },
+                    { title: 'Pending Jobs', value: `${jobs.length}`, icon: <AccessTime />, color: 'var(--warning)' },
                     { title: 'Fuel Efficiency', value: '+12%', icon: <TrendingUp />, color: 'var(--info)' },
                 ].map((stat, index) => (
                     <Grid size={{ xs: 12, sm: 6, md: 3 }} key={index}>
@@ -97,7 +125,7 @@ const Dashboard: React.FC = () => {
             <Grid container spacing={3}>
                 {/* Left Column */}
                 <Grid size={{ xs: 12, md: 8 }}>
-                    {/* Map Placeholder */}
+                    {/* Map Section */}
                     <Paper
                         elevation={0}
                         sx={{
@@ -108,30 +136,9 @@ const Dashboard: React.FC = () => {
                             border: '1px solid var(--border)',
                             borderRadius: 2,
                             overflow: 'hidden',
-                            position: 'relative',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexDirection: 'column'
                         }}
                     >
-                        <Box sx={{
-                            position: 'absolute',
-                            top: 0,
-                            left: 0,
-                            right: 0,
-                            bottom: 0,
-                            opacity: 0.1,
-                            backgroundImage: 'radial-gradient(var(--highlight) 1px, transparent 1px)',
-                            backgroundSize: '20px 20px'
-                        }} />
-                        <MapIcon sx={{ fontSize: 60, color: 'var(--text-muted)', mb: 2 }} />
-                        <Typography variant="h6" sx={{ color: 'var(--text-muted)' }}>
-                            Interactive Operations Map
-                        </Typography>
-                        <Typography variant="body2" sx={{ color: 'var(--text-muted)' }}>
-                            (Google Maps Integration Placeholder)
-                        </Typography>
+                        <OperationsMap jobs={jobs} />
                     </Paper>
 
                     {/* Upcoming Schedule */}
@@ -148,42 +155,40 @@ const Dashboard: React.FC = () => {
                             Upcoming Schedule
                         </Typography>
                         <List>
-                            {[
-                                { time: '14:00', title: 'Delivery to Downtown Branch', status: 'In Transit', color: 'var(--info)' },
-                                { time: '15:30', title: 'Pickup from Warehouse A', status: 'Scheduled', color: 'var(--warning)' },
-                                { time: '16:45', title: 'Urgent: Medical Supplies', status: 'Pending', color: 'var(--danger)' },
-                            ].map((job, index) => (
-                                <React.Fragment key={index}>
-                                    <ListItem alignItems="flex-start" sx={{ px: 0 }}>
-                                        <ListItemText
-                                            primary={
-                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                                    <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'var(--text)', minWidth: '60px' }}>
-                                                        {job.time}
-                                                    </Typography>
-                                                    <Typography variant="subtitle1" sx={{ color: 'var(--text)' }}>
-                                                        {job.title}
-                                                    </Typography>
-                                                </Box>
-                                            }
-                                            secondary={
-                                                <Box sx={{ ml: '76px' }}>
-                                                    <Chip
-                                                        label={job.status}
-                                                        size="small"
-                                                        sx={{
-                                                            bgcolor: `${job.color}20`,
-                                                            color: job.color,
-                                                            border: `1px solid ${job.color}`
-                                                        }}
-                                                    />
-                                                </Box>
-                                            }
-                                        />
-                                    </ListItem>
-                                    {index < 2 && <Divider component="li" sx={{ borderColor: 'var(--border-muted)' }} />}
-                                </React.Fragment>
-                            ))}
+                            {upcomingJobs.length > 0 ? (
+                                upcomingJobs.map((job, index) => (
+                                    <React.Fragment key={job.job_id}>
+                                        <ListItem alignItems="flex-start" sx={{ px: 0 }}>
+                                            <ListItemText
+                                                primary={
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                        <Typography variant="subtitle1" sx={{ fontWeight: 'bold', color: 'var(--text)', minWidth: '60px' }}>
+                                                            {dayjs(job.start_datetime).format('HH:mm')}
+                                                        </Typography>
+                                                        <Link component={RouterLink} to={`/jobs/${job.job_id}`} underline="hover" sx={{ color: 'var(--text)', fontWeight: 500 }}>
+                                                            {job.job_name || 'Unnamed Job'}
+                                                        </Link>
+                                                    </Box>
+                                                }
+                                                secondary={
+                                                    <Box sx={{ ml: '76px', mt: 0.5 }}>
+                                                        <Typography variant="caption" sx={{ color: 'var(--text-muted)', display: 'block' }}>
+                                                            {job.workers && job.workers.length > 0
+                                                                ? `Assigned: ${job.workers.map(w => `${w.worker_first_name || ''} ${w.worker_last_name || ''}`.trim() || 'Worker').join(', ')}`
+                                                                : 'Unassigned'}
+                                                        </Typography>
+                                                    </Box>
+                                                }
+                                            />
+                                        </ListItem>
+                                        {index < upcomingJobs.length - 1 && <Divider component="li" sx={{ borderColor: 'var(--border-muted)' }} />}
+                                    </React.Fragment>
+                                ))
+                            ) : (
+                                <Typography variant="body2" sx={{ color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                                    No upcoming jobs scheduled.
+                                </Typography>
+                            )}
                         </List>
                     </Paper>
                 </Grid>

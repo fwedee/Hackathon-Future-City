@@ -210,7 +210,7 @@ const JobDetailsPage: React.FC = () => {
                                                     </Avatar>
                                                 </ListItemAvatar>
                                                 <ListItemText
-                                                    primary={worker.name || "Unknown Worker"}
+                                                    primary={`${worker.worker_first_name || ''} ${worker.worker_last_name || ''}`.trim() || "Unknown Worker"}
                                                     secondary="Assigned Worker"
                                                     primaryTypographyProps={{ color: 'var(--text)', fontWeight: 500 }}
                                                     secondaryTypographyProps={{ color: 'var(--text-muted)' }}

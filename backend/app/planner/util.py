@@ -129,5 +129,5 @@ def fits_in_8hour_shift(branch_lat: float, branch_lon: float,
     job_duration = job_end - job_start
     total_time = travel_to_job + job_duration + travel_back
     
-    # Check if fits in 8 hours
-    return total_time <= timedelta(hours=8)
+    # Check if fits in 10 hours (relaxed from 8 to account for longer jobs + travel
+    return total_time <= timedelta(hours=10)
