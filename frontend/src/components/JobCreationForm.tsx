@@ -416,8 +416,28 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                                         helperText: errors.datetime,
                                         placeholder: "DD/MM/YYYY — HH:MM",
                                         sx: {
-                                            ...commonInputSx,
-                                            '& .MuiIconButton-root': { color: 'var(--primary)' }
+                                             // Input text color
+        "& .MuiInputBase-input": {
+          color: "white",
+        },
+
+        // Label color (default + focused)
+        "& .MuiInputLabel-root": {
+          color: "white",
+        },
+        "& .MuiInputLabel-root.Mui-focused": {
+          color: "white",
+        },
+
+        // Calendar icon
+        "& .MuiSvgIcon-root": {
+          color: "white",
+        },
+
+        // Icon button (if you want to keep your var(--primary), leave this)
+        "& .MuiIconButton-root": {
+          color: "var(--primary)"
+        },
                                         }
                                     }
                                 }}
@@ -712,3 +732,4 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
 };
 
 export default JobCreationForm;
+

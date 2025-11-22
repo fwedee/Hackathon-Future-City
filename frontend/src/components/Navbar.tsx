@@ -12,10 +12,10 @@ const Navbar: React.FC = () => {
 				</Box>
 
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+					<Button component={Link} to="/dashboard">Dashboard</Button>
 					<Button component={Link} to="/jobs">Jobs</Button>
 					<Button component={Link} to="/workers">Workers</Button>
 					<Button component={Link} to="/items">Items</Button>
-					<Button>Lang</Button>
 				</Box>
 			</Toolbar>
 		</AppBar>

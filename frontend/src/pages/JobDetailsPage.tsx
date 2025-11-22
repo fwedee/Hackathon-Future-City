@@ -80,14 +80,14 @@ const JobDetailsPage: React.FC = () => {
     return (
         <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
             {/* Breadcrumbs */}
-            <Breadcrumbs separator={<NavigateNextIcon fontSize="small" />} aria-label="breadcrumb" sx={{ mb: 3 }}>
-                <Link component={RouterLink} to="/" color="inherit" underline="hover">
+            <Breadcrumbs separator={<NavigateNextIcon fontSize="small" sx={{ color: '#60A5FA' }} />} aria-label="breadcrumb" sx={{ mb: 3 }}>
+                <Link component={RouterLink} to="/" underline="hover" sx={{ color: '#60A5FA' }}>
                     Home
                 </Link>
-                <Link component={RouterLink} to="/jobs" color="inherit" underline="hover">
+                <Link component={RouterLink} to="/jobs" underline="hover" sx={{ color: '#60A5FA' }}>
                     Jobs
                 </Link>
-                <Typography color="text.primary">{jobTitle}</Typography>
+                <Typography sx={{ color: '#60A5FA' }}>{jobTitle}</Typography>
             </Breadcrumbs>
 
             <Grid container spacing={4}>

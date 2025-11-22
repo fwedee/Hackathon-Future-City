@@ -9,6 +9,7 @@ import JobDetailsPage from './pages/JobDetailsPage'
 import WorkersPage from './pages/WorkersPage'
 import ItemsPage from './pages/ItemsPage'
 import WorkerPage from './pages/WorkerPage'
+import Dashboard from './pages/Dashboard'
 
 const App: React.FC = () => {
     return (
@@ -23,6 +24,7 @@ const App: React.FC = () => {
                     <Route path="workers" element={<WorkersPage />} />
                     <Route path="workers/:id" element={<WorkerPage />} />
                     <Route path="items" element={<ItemsPage />} />
+                    <Route path="dashboard" element={<Dashboard />} />
                 </Route>
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
