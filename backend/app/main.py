@@ -23,14 +23,12 @@ app.add_middleware(
 )
 
 # Register routers
-from app.routers import planner as planner_router
 from app.routers import jobs as jobs_router
 from app.routers import workers as workers_router
 from app.routers import items as items_router
 from app.routers import roles as roles_router
 
-app.include_router(planner_router.router, prefix="/api")
-app.include_router(jobs_router.router, prefix="/api")
-app.include_router(workers_router.router, prefix="/api")
-app.include_router(items_router.router, prefix="/api")
-app.include_router(roles_router.router, prefix="/api")
+app.include_router(jobs_router.router)
+app.include_router(workers_router.router)
+app.include_router(items_router.router)
+app.include_router(roles_router.router)
