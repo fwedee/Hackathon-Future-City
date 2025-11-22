@@ -62,25 +62,54 @@ const Dashboard: React.FC = () => {
         .sort((a, b) => dayjs(a.start_datetime).diff(dayjs(b.start_datetime)))
         .slice(0, 3);
 
+    // Calculate overall assignment status
+    const unassignedJobsCount = jobs.filter(job => !job.workers || job.workers.length === 0).length;
+    const allJobsAssigned = jobs.length > 0 && unassignedJobsCount === 0;
+
     return (
-        <Box sx={{ flexGrow: 1, p: 3, color: 'var(--text)' }}>
-            <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', p: 3, color: 'var(--text)', overflow: 'hidden' }}>
+            <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
                 <Typography variant="h4" component="h1" sx={{ fontWeight: 'bold', color: 'var(--text)' }}>
                     Smart Logistics Dashboard
                 </Typography>
-                <Chip
-                    icon={<AutoAwesome />}
-                    label="AI Optimization Active"
-                    sx={{
-                        bgcolor: 'var(--secondary)',
-                        color: 'var(--bg-dark)',
-                        fontWeight: 'bold'
-                    }}
-                />
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                    {allJobsAssigned ? (
+                        <Chip
+                            icon={<CheckCircle />}
+                            label="All Jobs Assigned"
+                            sx={{
+                                bgcolor: 'var(--success)',
+                                color: 'white',
+                                fontWeight: 'bold',
+                                '& .MuiChip-icon': { color: 'white' }
+                            }}
+                        />
+                    ) : (
+                        <Chip
+                            icon={<AccessTime />}
+                            label={`${unassignedJobsCount} Job${unassignedJobsCount !== 1 ? 's' : ''} Pending`}
+                            sx={{
+                                bgcolor: 'var(--warning)',
+                                color: 'var(--bg-dark)',
+                                fontWeight: 'bold',
+                                '& .MuiChip-icon': { color: 'var(--bg-dark)' }
+                            }}
+                        />
+                    )}
+                    <Chip
+                        icon={<AutoAwesome />}
+                        label="AI Optimization Active"
+                        sx={{
+                            bgcolor: 'var(--secondary)',
+                            color: 'var(--bg-dark)',
+                            fontWeight: 'bold'
+                        }}
+                    />
+                </Box>
             </Box>
 
             {/* Stats Cards */}
-            <Grid container spacing={3} sx={{ mb: 4 }}>
+            <Grid container spacing={2} sx={{ mb: 2, flexShrink: 0 }}>
                 {[
                     { title: 'Active Fleet', value: `${workers.length}/15`, icon: <LocalShipping />, color: 'var(--primary)' },
                     { title: 'On-Time Rate', value: '98.5%', icon: <CheckCircle />, color: 'var(--success)' },
@@ -122,16 +151,16 @@ const Dashboard: React.FC = () => {
                 ))}
             </Grid>
 
-            <Grid container spacing={3}>
+            <Grid container spacing={2} sx={{ flex: 1, overflow: 'hidden' }}>
                 {/* Left Column */}
-                <Grid size={{ xs: 12, md: 8 }}>
+                <Grid size={{ xs: 12, md: 8 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
                     {/* Map Section */}
                     <Paper
                         elevation={0}
                         sx={{
                             p: 0,
-                            mb: 3,
-                            height: 400,
+                            mb: 2,
+                            flex: '0 0 45%',
                             bgcolor: 'var(--bg-light)',
                             border: '1px solid var(--border)',
                             borderRadius: 2,
@@ -145,16 +174,20 @@ const Dashboard: React.FC = () => {
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 3,
+                            p: 2,
                             bgcolor: 'var(--bg-light)',
                             border: '1px solid var(--border)',
                             borderRadius: 2,
+                            flex: 1,
+                            display: 'flex',
+                            flexDirection: 'column',
+                            overflow: 'hidden',
                         }}
                     >
-                        <Typography variant="h6" sx={{ mb: 2, color: 'var(--text)' }}>
+                        <Typography variant="h6" sx={{ mb: 1, color: 'var(--text)', flexShrink: 0 }}>
                             Upcoming Schedule
                         </Typography>
-                        <List>
+                        <List sx={{ overflow: 'auto', flex: 1 }}>
                             {upcomingJobs.length > 0 ? (
                                 upcomingJobs.map((job, index) => (
                                     <React.Fragment key={job.job_id}>
@@ -172,11 +205,26 @@ const Dashboard: React.FC = () => {
                                                 }
                                                 secondary={
                                                     <Box sx={{ ml: '76px', mt: 0.5 }}>
-                                                        <Typography variant="caption" sx={{ color: 'var(--text-muted)', display: 'block' }}>
-                                                            {job.workers && job.workers.length > 0
-                                                                ? `Assigned: ${job.workers.map(w => `${w.worker_first_name || ''} ${w.worker_last_name || ''}`.trim() || 'Worker').join(', ')}`
-                                                                : 'Unassigned'}
-                                                        </Typography>
+                                                        {job.workers && job.workers.length > 0 ? (
+                                                            <Typography variant="caption" sx={{ color: 'var(--text-muted)', display: 'block' }}>
+                                                                Assigned: {job.workers.map((w, idx) => (
+                                                                    <React.Fragment key={w.worker_id}>
+                                                                        <Link
+                                                                            component={RouterLink}
+                                                                            to={`/workers/${w.worker_id}`}
+                                                                            sx={{ color: 'var(--primary)', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+                                                                        >
+                                                                            {`${w.worker_first_name || ''} ${w.worker_last_name || ''}`.trim() || 'Worker'}
+                                                                        </Link>
+                                                                        {idx < job.workers.length - 1 && ', '}
+                                                                    </React.Fragment>
+                                                                ))}
+                                                            </Typography>
+                                                        ) : (
+                                                            <Typography variant="caption" sx={{ color: 'var(--text-muted)', display: 'block' }}>
+                                                                Unassigned
+                                                            </Typography>
+                                                        )}
                                                     </Box>
                                                 }
                                             />
@@ -194,13 +242,13 @@ const Dashboard: React.FC = () => {
                 </Grid>
 
                 {/* Right Column */}
-                <Grid size={{ xs: 12, md: 4 }}>
+                <Grid size={{ xs: 12, md: 4 }} sx={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'auto' }}>
                     {/* Quick Action AI */}
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 3,
-                            mb: 3,
+                            p: 2,
+                            mb: 2,
                             bgcolor: 'var(--bg-light)',
                             border: '1px solid var(--border)',
                             borderRadius: 2,
@@ -254,8 +302,8 @@ const Dashboard: React.FC = () => {
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 3,
-                            mb: 3,
+                            p: 2,
+                            mb: 2,
                             bgcolor: 'var(--bg-light)',
                             border: '1px solid var(--border)',
                             borderRadius: 2,
@@ -292,7 +340,7 @@ const Dashboard: React.FC = () => {
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 3,
+                            p: 2,
                             bgcolor: 'var(--bg-light)',
                             border: '1px solid var(--border)',
                             borderRadius: 2,
