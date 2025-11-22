@@ -1,11 +1,23 @@
+import os
+from pathlib import Path
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.database import engine, Base
 import app.models.models  # Import models to register them with Base
 
-# Create tables
-Base.metadata.create_all(bind=engine)
+# Check if database exists, if not initialize and seed it
+DB_PATH = Path(__file__).parent.parent / "hackathon.db"
+if not DB_PATH.exists():
+    print("Database not found. Initializing database...")
+    from seed.seed import seed_database
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created. Seeding data...")
+    seed_database()
+    print("Database initialization complete!")
+else:
+    # Ensure tables exist (in case schema changed)
+    Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
