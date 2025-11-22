@@ -1,12 +1,13 @@
 import React from 'react'
-import { Typography } from '@mui/material'
+import { Typography, Container } from '@mui/material'
+import JobCreationForm from '../components/JobCreationForm'
 
 const JobsPage: React.FC = () => {
   return (
-    <div>
-      <Typography variant="h4" gutterBottom>Jobs</Typography>
-      <Typography>Jobs page (content intentionally left empty).</Typography>
-    </div>
+    <Container maxWidth="lg" sx={{ py: 8, backgroundColor: 'var(--bg)', minHeight: '100vh' }}>
+      <Typography variant="h4" gutterBottom sx={{ mb: 4, color: 'var(--primary)', fontWeight: 'bold' }}>Jobs Management</Typography>
+      <JobCreationForm />
+    </Container>
   )
 }
 
