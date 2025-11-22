@@ -40,13 +40,19 @@ job__role = Table(
     Column("required_quantity", Integer, nullable=True),
 )
 
-job__item = Table(
-    "job__item",
-    Base.metadata,
-    Column("job_id", String(36), ForeignKey("job.job_id"), primary_key=True),
-    Column("item_id", String(36), ForeignKey("item.item_id"), primary_key=True),
-    Column("required_quantity", Integer, nullable=True),
-)
+
+# Association object for job-item with quantity
+class JobItem(Base):
+    __tablename__ = "job__item"
+    
+    job_id = Column(String(36), ForeignKey("job.job_id"), primary_key=True)
+    item_id = Column(String(36), ForeignKey("item.item_id"), primary_key=True)
+    required_quantity = Column(Integer, nullable=True, default=1)
+    
+    # Relationships to parent objects
+    job = relationship("Job", back_populates="item_links")
+    item = relationship("Item")
+
 
 job__stock = Table(
     "job__stock",
@@ -98,7 +104,6 @@ class Item(Base):
     fk_branch_id = Column(String(36), ForeignKey("branch.branch_id"), nullable=True)
 
     branch = relationship("Branch", back_populates="items")
-    jobs = relationship("Job", secondary=job__item, back_populates="items")
     stocks = relationship("Stock", back_populates="item")
 
 
@@ -130,7 +135,7 @@ class Job(Base):
     end_datetime = Column(DateTime, nullable=True)
 
     workers = relationship("Worker", secondary=worker__job, back_populates="jobs")
-    items = relationship("Item", secondary=job__item, back_populates="jobs")
+    item_links = relationship("JobItem", back_populates="job", cascade="all, delete-orphan")
     roles = relationship("Role", secondary=job__role, back_populates="jobs")
     stocks = relationship("Stock", secondary=job__stock, back_populates="jobs")
 

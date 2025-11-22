@@ -1,10 +1,10 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from app.core.database import get_db
-from app.models.models import Job, Item, Worker, Role
+from app.models.models import Job, Item, Worker, Role, JobItem
 from app import schemas
 
 router = APIRouter()
@@ -12,6 +12,8 @@ router = APIRouter()
 @router.post("/jobs", response_model=schemas.Job)
 def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
     db_job = Job(
+        job_name=job.job_name,
+        job_description=job.job_description,
         longitude=job.longitude,
         latitude=job.latitude,
         country=job.country,
@@ -28,10 +30,11 @@ def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
         workers = db.query(Worker).filter(Worker.worker_id.in_(job.worker_ids)).all()
         db_job.workers = workers
         
-    # Handle items
-    if job.item_ids:
-        items = db.query(Item).filter(Item.item_id.in_(job.item_ids)).all()
-        db_job.items = items
+    # Handle items (with quantities)
+    if job.items:
+        for item_link in job.items:
+            db_item_link = JobItem(item_id=item_link.item_id, required_quantity=item_link.required_quantity)
+            db_job.item_links.append(db_item_link)
 
     # Handle roles
     if job.role_ids:
@@ -41,16 +44,19 @@ def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
     db.add(db_job)
     db.commit()
     db.refresh(db_job)
+    
+    # Reload with eager loading to populate item_links.item
+    db_job = db.query(Job).options(joinedload(Job.item_links).joinedload(JobItem.item)).filter(Job.job_id == db_job.job_id).first()
     return db_job
 
 @router.get("/jobs", response_model=List[schemas.Job])
 def read_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    jobs = db.query(Job).offset(skip).limit(limit).all()
+    jobs = db.query(Job).options(joinedload(Job.item_links).joinedload(JobItem.item)).offset(skip).limit(limit).all()
     return jobs
 
 @router.get("/jobs/{job_id}", response_model=schemas.Job)
 def read_job(job_id: str, db: Session = Depends(get_db)):
-    db_job = db.query(Job).filter(Job.job_id == job_id).first()
+    db_job = db.query(Job).options(joinedload(Job.item_links).joinedload(JobItem.item)).filter(Job.job_id == job_id).first()
     if db_job is None:
         raise HTTPException(status_code=404, detail="Job not found")
     return db_job
@@ -62,7 +68,7 @@ def update_job(job_id: str, job: schemas.JobCreate, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="Job not found")
     
     # Update basic fields
-    job_data = job.dict(exclude={'worker_ids', 'item_ids', 'role_ids'})
+    job_data = job.dict(exclude={'worker_ids', 'items', 'role_ids'})
     for key, value in job_data.items():
         setattr(db_job, key, value)
     
@@ -71,9 +77,13 @@ def update_job(job_id: str, job: schemas.JobCreate, db: Session = Depends(get_db
         workers = db.query(Worker).filter(Worker.worker_id.in_(job.worker_ids)).all()
         db_job.workers = workers
         
-    if job.item_ids is not None:
-        items = db.query(Item).filter(Item.item_id.in_(job.item_ids)).all()
-        db_job.items = items
+    if job.items is not None:
+        # Clear existing links and add new ones
+        # Because of cascade="all, delete-orphan", removing from list deletes the association object
+        db_job.item_links = []
+        for item_link in job.items:
+            db_item_link = JobItem(item_id=item_link.item_id, required_quantity=item_link.required_quantity)
+            db_job.item_links.append(db_item_link)
 
     if job.role_ids is not None:
         roles = db.query(Role).filter(Role.role_id.in_(job.role_ids)).all()
@@ -81,6 +91,9 @@ def update_job(job_id: str, job: schemas.JobCreate, db: Session = Depends(get_db
         
     db.commit()
     db.refresh(db_job)
+    
+    # Reload with eager loading to populate item_links.item
+    db_job = db.query(Job).options(joinedload(Job.item_links).joinedload(JobItem.item)).filter(Job.job_id == job_id).first()
     return db_job
 
 @router.delete("/jobs/{job_id}")

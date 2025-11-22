@@ -14,18 +14,20 @@ export interface Worker {
 
 export interface Item {
     item_id: string;
-    name?: string;
-    description?: string;
+    item_name?: string;
+    item_description?: string;
     fk_branch_id?: string;
 }
 
 export interface Role {
     role_id: string;
-    name?: string;
-    description?: string;
+    role_name?: string;
+    role_description?: string;
 }
 
 export interface JobCreate {
+    job_name?: string;
+    job_description?: string;
     longitude: number;
     latitude: number;
     country?: string;
@@ -36,14 +38,31 @@ export interface JobCreate {
     start_datetime?: string;
     end_datetime?: string;
     worker_ids: string[];
-    item_ids: string[];
+    items: { item_id: string; required_quantity: number }[];
     role_ids: string[];
 }
 
-export interface Job extends JobCreate {
+export interface JobItemLink {
+    item_id: string;
+    required_quantity: number;
+    item: Item;
+}
+
+export interface Job {
     job_id: string;
+    job_name?: string;
+    job_description?: string;
+    longitude: number;
+    latitude: number;
+    country?: string;
+    city?: string;
+    house_number?: string;
+    street?: string;
+    postal_code?: string;
+    start_datetime?: string;
+    end_datetime?: string;
     workers: Worker[];
-    items: Item[];
+    item_links: JobItemLink[];
     roles: Role[];
 }
 
@@ -62,13 +81,13 @@ export const fetchRoles = async (): Promise<Role[]> => {
     return response.data;
 };
 
-export const createItem = async (name: string, description?: string): Promise<Item> => {
-    const response = await api.post('/items', { name, description });
+export const createItem = async (item_name: string, item_description?: string): Promise<Item> => {
+    const response = await api.post('/items', { item_name, item_description });
     return response.data;
 };
 
-export const createRole = async (name: string, description?: string): Promise<Role> => {
-    const response = await api.post('/roles', { name, description });
+export const createRole = async (role_name: string, role_description?: string): Promise<Role> => {
+    const response = await api.post('/roles', { role_name, role_description });
     return response.data;
 };
 

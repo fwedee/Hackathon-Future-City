@@ -8,7 +8,7 @@ const Navbar: React.FC = () => {
 			<Toolbar sx={{ justifyContent: 'space-between' }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
 					<Avatar sx={{ bgcolor: '#ccc', width: 40, height: 40 }} />
-					<Typography variant="h6">Logo</Typography>
+					<Typography variant="h6">LogiStream</Typography>
 				</Box>
 
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>

@@ -17,6 +17,7 @@ import {
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
+import VisibilityIcon from '@mui/icons-material/Visibility';
 import { useNavigate } from 'react-router-dom';
 import { fetchJobs, deleteJob, type Job } from '../services/api';
 import dayjs from 'dayjs';
@@ -75,6 +76,7 @@ const JobsListPage: React.FC = () => {
                         <TableRow>
                             <TableCell sx={{ color: 'var(--text-muted)' }}>Location</TableCell>
                             <TableCell sx={{ color: 'var(--text-muted)' }}>Start Date</TableCell>
+                            <TableCell sx={{ color: 'var(--text-muted)' }}>End Date</TableCell>
                             <TableCell sx={{ color: 'var(--text-muted)' }}>Roles</TableCell>
                             <TableCell sx={{ color: 'var(--text-muted)' }}>Items</TableCell>
                             <TableCell align="right" sx={{ color: 'var(--text-muted)' }}>Actions</TableCell>
@@ -89,25 +91,37 @@ const JobsListPage: React.FC = () => {
                                 <TableCell sx={{ color: 'var(--text)' }}>
                                     {job.start_datetime ? dayjs(job.start_datetime).format('DD/MM/YYYY HH:mm') : 'N/A'}
                                 </TableCell>
+                                <TableCell sx={{ color: 'var(--text)' }}>
+                                    {job.end_datetime ? dayjs(job.end_datetime).format('DD/MM/YYYY HH:mm') : 'N/A'}
+                                </TableCell>
                                 <TableCell>
                                     <Stack direction="row" spacing={1}>
                                         {job.roles.map(role => (
-                                            <Chip key={role.role_id} label={role.name} size="small" sx={{ backgroundColor: 'var(--highlight)', color: 'var(--text)' }} />
+                                            <Chip key={role.role_id} label={role.role_name} size="small" sx={{ backgroundColor: 'var(--highlight)', color: 'var(--text)' }} />
                                         ))}
                                     </Stack>
                                 </TableCell>
                                 <TableCell>
                                     <Stack direction="row" spacing={1}>
-                                        {job.items.map(item => (
-                                            <Chip key={item.item_id} label={item.name} size="small" variant="outlined" sx={{ color: 'var(--text)', borderColor: 'var(--border)' }} />
+                                        {job.item_links && job.item_links.map(link => (
+                                            <Chip
+                                                key={link.item_id}
+                                                label={`${link.item.item_name}${link.required_quantity > 1 ? ` (x${link.required_quantity})` : ''}`}
+                                                size="small"
+                                                variant="outlined"
+                                                sx={{ color: 'var(--text)', borderColor: 'var(--border)' }}
+                                            />
                                         ))}
                                     </Stack>
                                 </TableCell>
                                 <TableCell align="right">
-                                    <IconButton onClick={() => navigate(`/job/${job.job_id}`)} sx={{ color: 'var(--primary)' }}>
+                                    <IconButton onClick={() => navigate(`/jobs/${job.job_id}`)} sx={{ color: 'var(--text)' }} title="View Details">
+                                        <VisibilityIcon />
+                                    </IconButton>
+                                    <IconButton onClick={() => navigate(`/jobs/${job.job_id}/update`)} sx={{ color: 'var(--primary)' }} title="Edit">
                                         <EditIcon />
                                     </IconButton>
-                                    <IconButton onClick={() => handleDelete(job.job_id)} sx={{ color: 'var(--error)' }}>
+                                    <IconButton onClick={() => handleDelete(job.job_id)} sx={{ color: 'var(--error)' }} title="Delete">
                                         <DeleteIcon />
                                     </IconButton>
                                 </TableCell>

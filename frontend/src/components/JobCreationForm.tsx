@@ -15,10 +15,12 @@ import {
     DialogActions,
     Paper,
     Tooltip,
-    Divider
+    Divider,
+    IconButton
 } from '@mui/material';
 import InfoIcon from '@mui/icons-material/Info';
 import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { useLoadScript, Autocomplete as GoogleAutocomplete } from '@react-google-maps/api';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -44,6 +46,7 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
     const [items, setItems] = useState<Item[]>([]);
     const [selectedRoles, setSelectedRoles] = useState<Role[]>([]);
     const [selectedItems, setSelectedItems] = useState<Item[]>([]);
+    const [itemQuantities, setItemQuantities] = useState<{ [key: string]: number }>({});
 
     // Location state
     const [address, setAddress] = useState('');
@@ -53,6 +56,11 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
 
     // Datetime state
     const [startDatetime, setStartDatetime] = useState<Dayjs | null>(null);
+    const [endDatetime, setEndDatetime] = useState<Dayjs | null>(null);
+
+    // Job Name & Description state
+    const [jobName, setJobName] = useState('');
+    const [description, setDescription] = useState('');
 
     // Validation state
     const [errors, setErrors] = useState<{ [key: string]: string }>({});
@@ -99,6 +107,10 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
         if (!jobId) return;
         try {
             const job = await fetchJob(jobId);
+            // Set Name & Description
+            setJobName(job.job_name || '');
+            setDescription(job.job_description || '');
+
             // Set Location
             setAddress(`${job.street || ''} ${job.house_number || ''}, ${job.city || ''}`);
             setCoordinates({ lat: job.latitude, lng: job.longitude });
@@ -114,15 +126,38 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
             if (job.start_datetime) {
                 setStartDatetime(dayjs(job.start_datetime));
             }
+            if (job.end_datetime) {
+                setEndDatetime(dayjs(job.end_datetime));
+            }
 
             // Set Roles
-            // Map existing roles to the full role objects from the list to ensure equality checks work
             const jobRoles = job.roles.map(r => roles.find(role => role.role_id === r.role_id) || r);
             setSelectedRoles(jobRoles);
 
-            // Set Items
-            const jobItems = job.items.map(i => items.find(item => item.item_id === i.item_id) || i);
+            // Set Items & Quantities
+            // job.item_links contains the quantity info
+            const jobItems: Item[] = [];
+            const quantities: { [key: string]: number } = {};
+
+            if (job.item_links) {
+                job.item_links.forEach(link => {
+                    const item = items.find(i => i.item_id === link.item_id) || link.item;
+                    if (item) {
+                        jobItems.push(item);
+                        quantities[item.item_id] = link.required_quantity;
+                    }
+                });
+            } else if ((job as any).items) {
+                // Fallback for old API response if any
+                (job as any).items.forEach((i: Item) => {
+                    const item = items.find(it => it.item_id === i.item_id) || i;
+                    jobItems.push(item);
+                    quantities[item.item_id] = 1;
+                });
+            }
+
             setSelectedItems(jobItems);
+            setItemQuantities(quantities);
 
         } catch (error) {
             console.error("Failed to load job details", error);
@@ -164,6 +199,9 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
             const newItem = await createItem(newItemName, newItemDesc);
             setItems([...items, newItem]);
             setSelectedItems([...selectedItems, newItem]);
+            // Default quantity 1 for new item
+            setItemQuantities(prev => ({ ...prev, [newItem.item_id]: 1 }));
+
             setOpenNewItemDialog(false);
             setNewItemName('');
             setNewItemDesc('');
@@ -189,10 +227,19 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
         }
     };
 
+    const handleQuantityChange = (itemId: string, delta: number) => {
+        setItemQuantities(prev => {
+            const current = prev[itemId] || 1;
+            const newQuantity = Math.max(1, current + delta);
+            return { ...prev, [itemId]: newQuantity };
+        });
+    };
+
     const validateForm = () => {
         const newErrors: { [key: string]: string } = {};
         if (!coordinates) newErrors.location = "Please select a valid location from the dropdown.";
-        if (!startDatetime || !startDatetime.isValid()) newErrors.datetime = "Please select a valid date and time.";
+        if (!startDatetime || !startDatetime.isValid()) newErrors.datetime = "Please select a valid start date and time.";
+        if (endDatetime && endDatetime.isBefore(startDatetime)) newErrors.endDatetime = "End date cannot be before start date.";
         if (selectedRoles.length === 0) newErrors.roles = "Please select at least one role.";
 
         setErrors(newErrors);
@@ -206,12 +253,18 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
         }
 
         const jobData = {
+            job_name: jobName,
+            job_description: description,
             longitude: coordinates!.lng,
             latitude: coordinates!.lat,
             ...locationDetails,
             role_ids: selectedRoles.map(r => r.role_id),
-            item_ids: selectedItems.map(i => i.item_id),
+            items: selectedItems.map(i => ({
+                item_id: i.item_id,
+                required_quantity: itemQuantities[i.item_id] || 1
+            })),
             start_datetime: startDatetime!.toISOString(),
+            end_datetime: endDatetime ? endDatetime.toISOString() : undefined,
             worker_ids: [],
         };
 
@@ -223,12 +276,16 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                 await createJob(jobData);
                 showSnackbar("Job created successfully!", "success");
                 // Reset form only on create
+                setJobName('');
+                setDescription('');
                 setAddress('');
                 setCoordinates(null);
                 setSelectedRoles([]);
                 setSelectedItems([]);
+                setItemQuantities({});
                 setLocationDetails({});
                 setStartDatetime(null);
+                setEndDatetime(null);
                 setErrors({});
             }
 
@@ -249,6 +306,7 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
 
     const commonInputSx = {
         '& .MuiInputBase-root': { color: 'var(--text)', backgroundColor: 'var(--bg)' },
+        '& .MuiInputBase-input': { color: 'var(--text)' }, // Explicitly set input text color
         '& .MuiInputLabel-root': { color: 'var(--text-muted)' },
         '& .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--border-muted)' }, // Lightened border
         '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: 'var(--highlight)' },
@@ -271,6 +329,38 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                 </Typography>
 
                 <Stack spacing={4}>
+                    {/* Job Name & Description Section */}
+                    <Box>
+                        <Stack direction="row" alignItems="center" spacing={1} mb={1}>
+                            <Typography variant="h6" sx={{ color: 'var(--text)' }}>Job Details</Typography>
+                            <Tooltip title="Basic information about the job.">
+                                <InfoIcon fontSize="small" sx={{ color: 'var(--text-muted)' }} />
+                            </Tooltip>
+                        </Stack>
+                        <Stack spacing={2}>
+                            <TextField
+                                fullWidth
+                                label="Job Name (Optional)"
+                                value={jobName}
+                                onChange={(e) => setJobName(e.target.value)}
+                                placeholder="e.g. Downtown Repair, Site Inspection..."
+                                sx={commonInputSx}
+                            />
+                            <TextField
+                                fullWidth
+                                multiline
+                                rows={3}
+                                label="Description (Optional)"
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                placeholder="Describe the job requirements, specific instructions, or context..."
+                                sx={commonInputSx}
+                            />
+                        </Stack>
+                    </Box>
+
+                    <Divider sx={{ borderColor: 'var(--border-muted)' }} />
+
                     {/* Location Section */}
                     <Box>
                         <Stack direction="row" alignItems="center" spacing={1} mb={1}>
@@ -306,31 +396,53 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                     {/* Datetime Section */}
                     <Box>
                         <Stack direction="row" alignItems="center" spacing={1} mb={1}>
-                            <Typography variant="h6" sx={{ color: 'var(--text)' }}>Start Date & Time</Typography>
-                            <Tooltip title="When should the job start?">
+                            <Typography variant="h6" sx={{ color: 'var(--text)' }}>Date & Time</Typography>
+                            <Tooltip title="When should the job start and end?">
                                 <InfoIcon fontSize="small" sx={{ color: 'var(--text-muted)' }} />
                             </Tooltip>
                         </Stack>
-                        <DateTimePicker
-                            label="Select Date & Time"
-                            value={startDatetime}
-                            onChange={(newValue) => {
-                                setStartDatetime(newValue);
-                                setErrors(prev => ({ ...prev, datetime: '' }));
-                            }}
-                            slotProps={{
-                                textField: {
-                                    fullWidth: true,
-                                    error: !!errors.datetime,
-                                    helperText: errors.datetime,
-                                    placeholder: "DD/MM/YYYY — HH:MM",
-                                    sx: {
-                                        ...commonInputSx,
-                                        '& .MuiIconButton-root': { color: 'var(--primary)' }
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+                            <DateTimePicker
+                                label="Start Date & Time"
+                                value={startDatetime}
+                                onChange={(newValue) => {
+                                    setStartDatetime(newValue);
+                                    setErrors(prev => ({ ...prev, datetime: '' }));
+                                }}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        error: !!errors.datetime,
+                                        helperText: errors.datetime,
+                                        placeholder: "DD/MM/YYYY — HH:MM",
+                                        sx: {
+                                            ...commonInputSx,
+                                            '& .MuiIconButton-root': { color: 'var(--primary)' }
+                                        }
                                     }
-                                }
-                            }}
-                        />
+                                }}
+                            />
+                            <DateTimePicker
+                                label="End Date & Time (Optional)"
+                                value={endDatetime}
+                                onChange={(newValue) => {
+                                    setEndDatetime(newValue);
+                                    setErrors(prev => ({ ...prev, endDatetime: '' }));
+                                }}
+                                slotProps={{
+                                    textField: {
+                                        fullWidth: true,
+                                        error: !!errors.endDatetime,
+                                        helperText: errors.endDatetime,
+                                        placeholder: "DD/MM/YYYY — HH:MM",
+                                        sx: {
+                                            ...commonInputSx,
+                                            '& .MuiIconButton-root': { color: 'var(--primary)' }
+                                        }
+                                    }
+                                }}
+                            />
+                        </Stack>
                     </Box>
 
                     <Divider sx={{ borderColor: 'var(--border-muted)' }} />
@@ -346,7 +458,7 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                         <Autocomplete
                             multiple
                             options={roles}
-                            getOptionLabel={(option) => option.name || 'Unknown Role'}
+                            getOptionLabel={(option) => option.role_name || 'Unknown Role'}
                             value={selectedRoles}
                             isOptionEqualToValue={(option, value) => option.role_id === value.role_id}
                             onChange={(_, newValue) => {
@@ -367,7 +479,7 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                                 value.map((option, index) => (
                                     <Chip
                                         {...getTagProps({ index })}
-                                        label={option.name}
+                                        label={option.role_name}
                                         sx={{ backgroundColor: 'var(--highlight)', color: 'var(--text)' }}
                                     />
                                 ))
@@ -400,10 +512,20 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                         <Autocomplete
                             multiple
                             options={items}
-                            getOptionLabel={(option) => option.name || 'Unknown Item'}
+                            getOptionLabel={(option) => option.item_name || 'Unknown Item'}
                             value={selectedItems}
                             isOptionEqualToValue={(option, value) => option.item_id === value.item_id}
-                            onChange={(_, newValue) => setSelectedItems(newValue)}
+                            onChange={(_, newValue) => {
+                                setSelectedItems(newValue);
+                                // Initialize quantity for new items if not present
+                                setItemQuantities(prev => {
+                                    const next = { ...prev };
+                                    newValue.forEach(item => {
+                                        if (!next[item.item_id]) next[item.item_id] = 1;
+                                    });
+                                    return next;
+                                });
+                            }}
                             renderInput={(params) => (
                                 <TextField
                                     {...params}
@@ -416,7 +538,7 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                                 value.map((option, index) => (
                                     <Chip
                                         {...getTagProps({ index })}
-                                        label={option.name}
+                                        label={option.item_name}
                                         sx={{ backgroundColor: 'var(--highlight)', color: 'var(--text)' }}
                                     />
                                 ))
@@ -434,6 +556,37 @@ const JobCreationForm: React.FC<JobCreationFormProps> = ({ jobId }) => {
                         >
                             Add Custom Equipment
                         </Button>
+
+                        {/* Item Quantity List */}
+                        {selectedItems.length > 0 && (
+                            <Stack spacing={2} sx={{ mt: 3 }}>
+                                <Typography variant="subtitle2" sx={{ color: 'var(--text-muted)' }}>Item Quantities:</Typography>
+                                {selectedItems.map(item => (
+                                    <Paper key={item.item_id} variant="outlined" sx={{ p: 2, backgroundColor: 'var(--bg)', borderColor: 'var(--border-muted)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                        <Typography variant="body1" sx={{ color: 'var(--text)' }}>{item.item_name}</Typography>
+                                        <Stack direction="row" alignItems="center" spacing={1}>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleQuantityChange(item.item_id, -1)}
+                                                sx={{ color: 'var(--text-muted)', border: '1px solid var(--border-muted)' }}
+                                            >
+                                                <RemoveIcon fontSize="small" />
+                                            </IconButton>
+                                            <Typography variant="body1" sx={{ color: 'var(--text)', minWidth: '30px', textAlign: 'center', fontWeight: 'bold' }}>
+                                                {itemQuantities[item.item_id] || 1}
+                                            </Typography>
+                                            <IconButton
+                                                size="small"
+                                                onClick={() => handleQuantityChange(item.item_id, 1)}
+                                                sx={{ color: 'var(--primary)', border: '1px solid var(--primary)' }}
+                                            >
+                                                <AddIcon fontSize="small" />
+                                            </IconButton>
+                                        </Stack>
+                                    </Paper>
+                                ))}
+                            </Stack>
+                        )}
                     </Box>
 
                     <Box sx={{ mt: 4 }}>
