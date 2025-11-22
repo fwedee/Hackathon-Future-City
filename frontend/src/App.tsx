@@ -1,29 +1,29 @@
-import React, { useEffect, useState } from "react";
-import axios from "axios";
-import { Container, Typography, Button } from "@mui/material";
+import React from 'react'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import Layout from './components/Layout'
+import HomePage from './pages/HomePage'
+import JobsPage from './pages/JobsPage'
+import WorkersPage from './pages/WorkersPage'
+import ItemsPage from './pages/ItemsPage'
+import JobPage from './pages/JobPage'
+import WorkerPage from './pages/WorkerPage'
 
 const App: React.FC = () => {
-    const [message, setMessage] = useState<string>("");
-
-    useEffect(() => {
-        axios.get("/api/")
-            .then(response => setMessage(response.data.message))
-            .catch(error => console.error("Error fetching data", error));
-    }, []);
-
     return (
-        <Container>
-            <Typography variant="h3" gutterBottom>
-                FastAPI + React + Vite + MUI (TypeScript)
-            </Typography>
-            <Typography variant="body1">
-                {message || "Loading..."}
-            </Typography>
-            <Button variant="contained" color="primary" style={{ marginTop: '20px' }}>
-                Material UI Button
-            </Button>
-        </Container>
-    );
-};
+        <BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Layout />}>
+                    <Route index element={<HomePage />} />
+                    <Route path="jobs" element={<JobsPage />} />
+                    <Route path="jobs/:id" element={<JobPage />} />
+                    <Route path="workers" element={<WorkersPage />} />
+                    <Route path="workers/:id" element={<WorkerPage />} />
+                    <Route path="items" element={<ItemsPage />} />
+                </Route>
+                <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+        </BrowserRouter>
+    )
+}
 
-export default App;
+export default App
