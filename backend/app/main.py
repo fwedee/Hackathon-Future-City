@@ -28,8 +28,10 @@ from app.routers import jobs as jobs_router
 from app.routers import workers as workers_router
 from app.routers import items as items_router
 from app.routers import roles as roles_router
+from app.routers import planner_test as planner_test_router # for testing planner
 
 app.include_router(jobs_router.router)
 app.include_router(workers_router.router)
 app.include_router(items_router.router)
 app.include_router(roles_router.router)
+app.include_router(planner_test_router.router) # for testing planner
