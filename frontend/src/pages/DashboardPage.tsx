@@ -66,6 +66,9 @@ const Dashboard: React.FC = () => {
     const unassignedJobsCount = jobs.filter(job => !job.workers || job.workers.length === 0).length;
     const allJobsAssigned = jobs.length > 0 && unassignedJobsCount === 0;
 
+    // Calculate active workers (assigned to at least one job)
+    const activeWorkersCount = new Set(jobs.flatMap(job => job.workers ? job.workers.map(w => w.worker_id) : [])).size;
+
     return (
         <Box sx={{ height: '100vh', display: 'flex', flexDirection: 'column', p: 3, color: 'var(--text)', overflow: 'hidden' }}>
             <Box sx={{ mb: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexShrink: 0 }}>
@@ -111,7 +114,7 @@ const Dashboard: React.FC = () => {
             {/* Stats Cards */}
             <Grid container spacing={2} sx={{ mb: 2, flexShrink: 0 }}>
                 {[
-                    { title: 'Active Fleet', value: `${workers.length}/15`, icon: <LocalShipping />, color: 'var(--primary)' },
+                    { title: 'Active Fleet', value: `${activeWorkersCount}/${workers.length}`, icon: <LocalShipping />, color: 'var(--primary)' },
                     { title: 'On-Time Rate', value: '98.5%', icon: <CheckCircle />, color: 'var(--success)' },
                     { title: 'Pending Jobs', value: `${jobs.length}`, icon: <AccessTime />, color: 'var(--warning)' },
                     { title: 'Fuel Efficiency', value: '+12%', icon: <TrendingUp />, color: 'var(--info)' },

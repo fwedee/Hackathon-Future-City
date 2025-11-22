@@ -210,9 +210,21 @@ const JobDetailsPage: React.FC = () => {
                                                     </Avatar>
                                                 </ListItemAvatar>
                                                 <ListItemText
-                                                    primary={`${worker.worker_first_name || ''} ${worker.worker_last_name || ''}`.trim() || "Unknown Worker"}
+                                                    primary={
+                                                        <Link
+                                                            component={RouterLink}
+                                                            to={`/workers/${worker.worker_id}`}
+                                                            sx={{
+                                                                color: 'var(--primary)',
+                                                                textDecoration: 'none',
+                                                                fontWeight: 500,
+                                                                '&:hover': { textDecoration: 'underline' }
+                                                            }}
+                                                        >
+                                                            {`${worker.worker_first_name || ''} ${worker.worker_last_name || ''}`.trim() || "Unknown Worker"}
+                                                        </Link>
+                                                    }
                                                     secondary="Assigned Worker"
-                                                    primaryTypographyProps={{ color: 'var(--text)', fontWeight: 500 }}
                                                     secondaryTypographyProps={{ color: 'var(--text-muted)' }}
                                                 />
                                             </ListItem>
