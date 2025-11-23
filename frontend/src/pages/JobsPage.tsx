@@ -132,7 +132,7 @@ const JobsPage: React.FC = () => {
                                     <IconButton onClick={() => navigate(`/jobs/${job.job_id}/update`)} sx={{ color: 'var(--text-muted)' }} title="Edit">
                                         <EditIcon />
                                     </IconButton>
-                                    <IconButton onClick={() => handleDelete(job.job_id)} sx={{ color: 'var(--text-muted)' }} title="Delete">
+                                    <IconButton onClick={() => handleDelete(job.job_id)} sx={{ color: 'var(--danger)' }} title="Delete">
                                         <DeleteIcon />
                                     </IconButton>
                                 </TableCell>

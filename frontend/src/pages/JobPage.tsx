@@ -10,7 +10,6 @@ import {
     Breadcrumbs,
     Link,
     Avatar,
-    IconButton,
     List,
     ListItem,
     ListItemText,
@@ -19,9 +18,9 @@ import {
     Card,
     CardContent,
     CardHeader,
-    Divider
+    Divider,
+    Snackbar
 } from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -35,6 +34,7 @@ const JobDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const [job, setJob] = useState<Job | null>(null);
+    const [showCopied, setShowCopied] = useState(false);
 
     useEffect(() => {
         if (id) {
@@ -66,6 +66,7 @@ const JobDetailsPage: React.FC = () => {
         if (job) {
             const address = `${job.street || ''} ${job.house_number || ''}, ${job.postal_code || ''} ${job.city || ''}, ${job.country || ''}`;
             navigator.clipboard.writeText(address);
+            setShowCopied(true);
         }
     };
 
@@ -109,7 +110,7 @@ const JobDetailsPage: React.FC = () => {
                             <Button
                                 variant="outlined"
                                 onClick={handleDelete}
-                                sx={{ color: 'var(--error)', borderColor: 'var(--error)', textTransform: 'none' }}
+                                sx={{ color: 'var(--danger)', borderColor: 'var(--danger)', textTransform: 'none' }}
                             >
                                 Delete
                             </Button>
@@ -192,11 +193,6 @@ const JobDetailsPage: React.FC = () => {
                             <CardHeader
                                 title="Workers"
                                 titleTypographyProps={{ variant: 'h6', fontWeight: 'bold', color: 'var(--text)' }}
-                                action={
-                                    <IconButton size="small" sx={{ border: '1px solid var(--border)', borderRadius: 1 }}>
-                                        <AddIcon fontSize="small" />
-                                    </IconButton>
-                                }
                             />
                             <Divider sx={{ borderColor: 'var(--border-muted)' }} />
                             <CardContent sx={{ p: 0 }}>
@@ -270,11 +266,6 @@ const JobDetailsPage: React.FC = () => {
                             <CardHeader
                                 title="Items"
                                 titleTypographyProps={{ variant: 'h6', fontWeight: 'bold', color: 'var(--text)' }}
-                                action={
-                                    <IconButton size="small" sx={{ border: '1px solid var(--border)', borderRadius: 1 }}>
-                                        <AddIcon fontSize="small" />
-                                    </IconButton>
-                                }
                             />
                             <Divider sx={{ borderColor: 'var(--border-muted)' }} />
                             <CardContent sx={{ p: 0 }}>
@@ -324,6 +315,25 @@ const JobDetailsPage: React.FC = () => {
                     </Stack>
                 </Grid>
             </Grid>
+
+            {/* Copy Confirmation Snackbar */}
+            <Snackbar
+                open={showCopied}
+                autoHideDuration={1000}
+                onClose={() => setShowCopied(false)}
+                message="Address copied to clipboard"
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+                TransitionProps={{
+                    timeout: 1000
+                }}
+                sx={{
+                    '& .MuiSnackbarContent-root': {
+                        backgroundColor: 'var(--success)',
+                        color: 'white',
+                        fontWeight: 500
+                    }
+                }}
+            />
         </Box>
     );
 };

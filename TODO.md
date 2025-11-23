@@ -2,7 +2,7 @@
 1. den header vertikal Mittiger (Lukas) [Fixed]
 2. andere Farbe für die Buttons im Header (Lukas) [Fixed]
 3. selbe schema von item auf job und worker (Lukas) [Fixed]
-4. niederigere margin bei der erstellung vom job 
+4. niederigere margin bei der erstellung vom job (Lukas) [Fixed]
 5. bei erstellung time und date feld ändern
 6. icons vom mülleimer weis bei jobs (Lukas) [Fixed]
 7. icons eine farbe bei jobs (Lukas) [Fixed]
