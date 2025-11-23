@@ -45,22 +45,13 @@ body {
 }
 
 .app-footer {
-  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   min-height: var(--footer-height);
   background: var(--bg-light);
   border-top: 1px solid var(--border);
-}
-
-.app-footer > * {
-  max-width: var(--max-content-width);
-  width: 100%;
-  min-height: var(--footer-height);
-  margin: 0 auto;
-  padding: 0 var(--page-margin);
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
 }
 
 .layout-container {
