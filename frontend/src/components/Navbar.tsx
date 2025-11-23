@@ -6,7 +6,7 @@ const Navbar: React.FC = () => {
 	return (
 		<AppBar position="static" color="transparent" elevation={0} sx={{ height: 'var(--header-height)', display: 'flex', justifyContent: 'center' }}>
 			<Toolbar sx={{ justifyContent: 'space-between', maxWidth: 'var(--max-content-width)', width: '100%', margin: '0 auto', padding: '0 var(--page-margin)', minHeight: 'unset !important' }}>
-				<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+				<Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 2, textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
 					<Box
 						component="img"
 						src="/logistream_logo_no_text_1763844999479.png"
