@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom'
 
 const Navbar: React.FC = () => {
 	return (
-		<AppBar position="static" color="transparent" elevation={0}>
-			<Toolbar sx={{ justifyContent: 'space-between' }}>
+		<AppBar position="static" color="transparent" elevation={0} sx={{ height: 'var(--header-height)', display: 'flex', justifyContent: 'center' }}>
+			<Toolbar sx={{ justifyContent: 'space-between', maxWidth: 'var(--max-content-width)', width: '100%', margin: '0 auto', padding: '0 var(--page-margin)', minHeight: 'unset !important' }}>
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
 					<Box
 						component="img"
@@ -17,10 +17,10 @@ const Navbar: React.FC = () => {
 				</Box>
 
 				<Box sx={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-					<Button component={Link} to="/dashboard">Dashboard</Button>
-					<Button component={Link} to="/jobs">Jobs</Button>
-					<Button component={Link} to="/workers">Workers</Button>
-					<Button component={Link} to="/items">Items</Button>
+					<Button component={Link} to="/dashboard" sx={{ color: 'white', fontSize: '1.25rem', textTransform: 'none' }}>Dashboard</Button>
+					<Button component={Link} to="/jobs" sx={{ color: 'white', fontSize: '1.25rem', textTransform: 'none' }}>Jobs</Button>
+					<Button component={Link} to="/workers" sx={{ color: 'white', fontSize: '1.25rem', textTransform: 'none' }}>Workers</Button>
+					<Button component={Link} to="/items" sx={{ color: 'white', fontSize: '1.25rem', textTransform: 'none' }}>Items</Button>
 				</Box>
 			</Toolbar>
 		</AppBar>

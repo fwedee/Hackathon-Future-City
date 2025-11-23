@@ -12,13 +12,16 @@ import {
     TableRow,
     IconButton,
     Chip,
-    Stack
+    Stack,
+    Breadcrumbs,
+    Link
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
 import AddIcon from '@mui/icons-material/Add';
 import VisibilityIcon from '@mui/icons-material/Visibility';
-import { useNavigate } from 'react-router-dom';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import { useNavigate, Link as RouterLink } from 'react-router-dom';
 import { fetchJobs, deleteJob, type Job } from '../services/api';
 import dayjs from 'dayjs';
 
@@ -51,9 +54,17 @@ const JobsPage: React.FC = () => {
     };
 
     return (
-        <Box sx={{ p: 4, maxWidth: 1200, mx: 'auto' }}>
+        <Box sx={{ p: { xs: 2, md: 4 }, maxWidth: 1200, mx: 'auto' }}>
+            {/* Breadcrumbs */}
+            <Breadcrumbs separator={<NavigateNextIcon fontSize="small" sx={{ color: '#60A5FA' }} />} aria-label="breadcrumb" sx={{ mb: 3 }}>
+                <Link component={RouterLink} to="/" underline="hover" sx={{ color: '#60A5FA' }}>
+                    Home
+                </Link>
+                <Typography sx={{ color: '#60A5FA' }}>Jobs</Typography>
+            </Breadcrumbs>
+
             <Stack direction="row" justifyContent="space-between" alignItems="center" mb={4}>
-                <Typography variant="h4" sx={{ color: 'var(--primary)', fontWeight: 'bold' }}>
+                <Typography variant="h3" sx={{ fontWeight: 'bold', color: 'var(--text)', fontSize: { xs: '2rem', md: '3rem' } }}>
                     Jobs Management
                 </Typography>
                 <Button
