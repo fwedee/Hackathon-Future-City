@@ -126,13 +126,13 @@ const JobsPage: React.FC = () => {
                                     </Stack>
                                 </TableCell>
                                 <TableCell align="right">
-                                    <IconButton onClick={() => navigate(`/jobs/${job.job_id}`)} sx={{ color: 'var(--text)' }} title="View Details">
+                                    <IconButton onClick={() => navigate(`/jobs/${job.job_id}`)} sx={{ color: 'var(--text-muted)' }} title="View Details">
                                         <VisibilityIcon />
                                     </IconButton>
-                                    <IconButton onClick={() => navigate(`/jobs/${job.job_id}/update`)} sx={{ color: 'var(--primary)' }} title="Edit">
+                                    <IconButton onClick={() => navigate(`/jobs/${job.job_id}/update`)} sx={{ color: 'var(--text-muted)' }} title="Edit">
                                         <EditIcon />
                                     </IconButton>
-                                    <IconButton onClick={() => handleDelete(job.job_id)} sx={{ color: 'var(--error)' }} title="Delete">
+                                    <IconButton onClick={() => handleDelete(job.job_id)} sx={{ color: 'var(--text-muted)' }} title="Delete">
                                         <DeleteIcon />
                                     </IconButton>
                                 </TableCell>

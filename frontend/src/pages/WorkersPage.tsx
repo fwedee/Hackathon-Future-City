@@ -91,7 +91,7 @@ const WorkersPage: React.FC = () => {
                                         </Stack>
                                     </TableCell>
                                     <TableCell align="right">
-                                        <IconButton onClick={() => navigate(`/workers/${worker.worker_id}`)} sx={{ color: 'var(--text)' }} title="View Details">
+                                        <IconButton onClick={() => navigate(`/workers/${worker.worker_id}`)} sx={{ color: 'var(--text-muted)' }} title="View Details">
                                             <VisibilityIcon />
                                         </IconButton>
                                     </TableCell>
