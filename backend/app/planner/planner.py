@@ -129,10 +129,16 @@ def compute_plan(planner_input: PlannerInput,
             else:
                 stock_job[s_idx][j_idx] = model.NewConstant(0)
     
-    # === Constraints ===
+    # === Soft Constraints (converted to objective terms) ===
     
-    # 1. Role requirements: each job must have workers with required roles
+    # Track which jobs have their role requirements satisfied (soft constraint)
+    job_satisfied = {}
+    role_satisfaction_penalties = []
+    
     for j_idx, job in enumerate(jobs):
+        # Create a boolean variable indicating if this job is satisfied
+        job_satisfied[j_idx] = model.NewBoolVar(f'job_{j_idx}_satisfied')
+        
         for role_id, required_count in job.required_roles.items():
             # Count workers assigned to this job that have this role (optimized lookup)
             workers_with_role = [
@@ -141,7 +147,13 @@ def compute_plan(planner_input: PlannerInput,
                 if role_id in worker_roles.get(w_idx, set())
             ]
             if workers_with_role:
-                model.Add(sum(workers_with_role) >= required_count)
+                # If job is satisfied, then role requirement must be met
+                # job_satisfied[j_idx] => sum(workers_with_role) >= required_count
+                # Equivalent to: sum(workers_with_role) >= required_count * job_satisfied[j_idx]
+                model.Add(sum(workers_with_role) >= required_count).OnlyEnforceIf(job_satisfied[j_idx])
+            else:
+                # No workers available with this role, job can't be satisfied
+                model.Add(job_satisfied[j_idx] == 0)
     
     # 2. Worker time constraints: no overlapping jobs (optimized)
     for w_idx in range(len(workers)):
@@ -156,22 +168,6 @@ def compute_plan(planner_input: PlannerInput,
                         worker_job[w_idx][j1_idx] + worker_job[w_idx][j2_idx] <= 1
                     )
     
-    # 3. Worker 8-hour shift constraint (optimized with cached branches)
-    for w_idx, worker in enumerate(workers):
-        branch = worker_branches.get(w_idx)
-        if not branch:
-            continue
-        
-        for j_idx, job in enumerate(jobs):
-            # Check if job fits in 8-hour shift with travel
-            if not fits_in_8hour_shift(
-                branch.latitude, branch.longitude,
-                job.latitude, job.longitude,
-                job.start_datetime, job.end_datetime
-            ):
-                # Constraint: cannot assign this worker to this job
-                model.Add(worker_job[w_idx][j_idx] == 0)
-    
     # 4. Worker reachability constraint (already handled in variable creation)
     # Variables for distance > 200km are set to constant 0
     
@@ -183,7 +179,7 @@ def compute_plan(planner_input: PlannerInput,
         )
         model.Add(total_assigned <= stock.quantity)
     
-    # 6. Item requirements: jobs must have required items
+    # 6. Item requirements: jobs must have required items (soft constraint)
     for j_idx, job in enumerate(jobs):
         for item_id, required_qty in job.required_items.items():
             # Sum stocks of this item assigned to this job
@@ -193,7 +189,11 @@ def compute_plan(planner_input: PlannerInput,
                 if stock.item_id == item_id
             ]
             if stocks_for_item:
-                model.Add(sum(stocks_for_item) >= required_qty)
+                # Only enforce if job is marked as satisfied
+                model.Add(sum(stocks_for_item) >= required_qty).OnlyEnforceIf(job_satisfied[j_idx])
+            else:
+                # No stock available for required item, job can't be satisfied
+                model.Add(job_satisfied[j_idx] == 0)
     
     # 7. Stock proximity preference (soft constraint via objective) - optimized
     # Prefer stocks closer to jobs
@@ -218,8 +218,16 @@ def compute_plan(planner_input: PlannerInput,
                 worker_job[w_idx][j_idx] * cost
             )
     
-    # === Objective: Minimize total distance (prefer nearby assignments) ===
-    total_cost = sum(stock_distance_costs) + sum(worker_distance_costs)
+    # === Objective: Maximize satisfied jobs, then minimize distance ===
+    # Primary goal: maximize number of satisfied jobs (weight = 10000 to prioritize)
+    num_satisfied_jobs = sum(job_satisfied[j_idx] for j_idx in range(len(jobs)))
+    
+    # Secondary goal: minimize total distance
+    total_distance_cost = sum(stock_distance_costs) + sum(worker_distance_costs)
+    
+    # Combined objective: maximize jobs satisfied (negative cost) - distance cost
+    # Multiplying by large weight ensures job satisfaction is prioritized
+    total_cost = -10000 * num_satisfied_jobs + total_distance_cost
     model.Minimize(total_cost)
     
     # === Warm Start (seed with previous solution) ===

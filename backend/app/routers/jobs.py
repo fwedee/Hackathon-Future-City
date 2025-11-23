@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session, joinedload
 from app.core.database import get_db
 from app.models.models import Job, Item, Worker, Role, JobItem
 from app import schemas
-from app.services.planner_service import fetch_and_run_planner
+from app.services.planner_service import fetch_and_run_planner_async
 
 router = APIRouter()
 
@@ -46,9 +46,9 @@ def create_job(job: schemas.JobCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_job)
     
-    # Run planner to update assignments
+    # Run planner to update assignments (async, returns immediately)
     try:
-        fetch_and_run_planner(db, debug=True)
+        fetch_and_run_planner_async(debug=True)
     except Exception as e:
         # Log error but don't fail job creation
         print(f"Planner error: {e}")
@@ -100,9 +100,9 @@ def update_job(job_id: str, job: schemas.JobCreate, db: Session = Depends(get_db
     db.commit()
     db.refresh(db_job)
     
-    # Run planner to update assignments
+    # Run planner to update assignments (async, returns immediately)
     try:
-        fetch_and_run_planner(db, debug=True)
+        fetch_and_run_planner_async(debug=True)
     except Exception as e:
         # Log error but don't fail job update
         print(f"Planner error: {e}")
@@ -120,9 +120,9 @@ def delete_job(job_id: str, db: Session = Depends(get_db)):
     db.delete(db_job)
     db.commit()
     
-    # Run planner to update assignments for remaining jobs
+    # Run planner to update assignments for remaining jobs (async, returns immediately)
     try:
-        fetch_and_run_planner(db, debug=True)
+        fetch_and_run_planner_async(debug=True)
     except Exception as e:
         # Log error but don't fail job deletion
         print(f"Planner error: {e}")
@@ -142,35 +142,6 @@ def get_jobs_by_worker_id(worker_id: str, db: Session = Depends(get_db)):
         joinedload(Job.workers),
         joinedload(Job.roles)
     ).all()
-    
-    # If no jobs found, return mock jobs for demonstration - TODO remove in production
-    if not jobs:
-        from datetime import datetime, timedelta
-        now = datetime.now()
-        
-        # Create mock job data
-        mock_jobs = []
-        for i in range(3):
-            mock_job = Job(
-                job_id=f"mock-job-{i+1}",
-                job_name=f"Demo Job {i+1}",
-                job_description=f"This is a demonstration job #{i+1}",
-                longitude=13.404954 + (i * 0.1),
-                latitude=52.520008 + (i * 0.1),
-                country="Germany",
-                city="Berlin",
-                street="Demo Street",
-                house_number=str(100 + i),
-                postal_code="10178",
-                start_datetime=now + timedelta(days=i+1, hours=8),
-                end_datetime=now + timedelta(days=i+1, hours=16)
-            )
-            mock_job.workers = []
-            mock_job.item_links = []
-            mock_job.roles = []
-            mock_jobs.append(mock_job)
-        
-        return mock_jobs
     
     return jobs
 

@@ -2,6 +2,7 @@
 from typing import Dict, List
 from sqlalchemy.orm import Session
 from datetime import datetime
+import threading
 
 from app.models.models import (
     Job, Worker, Branch, Stock, Item, Role,
@@ -15,6 +16,19 @@ from app.planner.models import (
     Stock as PlannerStock,
     Branch as PlannerBranch
 )
+from app.core.database import SessionLocal
+
+
+def _run_planner_internal(max_time_seconds: float = 30.0, debug: bool = False) -> Dict:
+    """
+    Internal function that runs the planner with its own database session.
+    Used by background thread.
+    """
+    db = SessionLocal()
+    try:
+        return _execute_planner(db, max_time_seconds, debug)
+    finally:
+        db.close()
 
 
 def fetch_and_run_planner(db: Session, max_time_seconds: float = 30.0, debug: bool = False) -> Dict:
@@ -26,6 +40,50 @@ def fetch_and_run_planner(db: Session, max_time_seconds: float = 30.0, debug: bo
     2. Convert to planner format
     3. Run planner
     4. Update worker__job and job__stock tables with results
+    
+    Args:
+        db: Database session
+        max_time_seconds: Max solver time
+        debug: If True, print detailed logs to console
+    
+    Returns:
+        Planner result dictionary
+    """
+    return _execute_planner(db, max_time_seconds, debug)
+
+
+def fetch_and_run_planner_async(max_time_seconds: float = 30.0, debug: bool = False) -> Dict:
+    """
+    Run planner in background thread and return immediately.
+    
+    This function starts the planner in a daemon thread and returns immediately
+    without waiting for completion. Useful for API endpoints that need to respond quickly.
+    
+    Args:
+        max_time_seconds: Max solver time
+        debug: If True, print detailed logs to console
+    
+    Returns:
+        Status dictionary indicating the planner was started
+    """
+    # Start planner in background thread
+    thread = threading.Thread(
+        target=_run_planner_internal,
+        args=(max_time_seconds, debug),
+        daemon=True
+    )
+    thread.start()
+    
+    return {
+        "status": "STARTED",
+        "message": "Planner started in background",
+        "thread_id": thread.ident
+    }
+
+
+def _execute_planner(db: Session, max_time_seconds: float, debug: bool) -> Dict:
+    """
+    Core planner execution logic.
     
     Args:
         db: Database session
