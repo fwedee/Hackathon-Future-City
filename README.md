@@ -46,6 +46,8 @@ Tasks
 - Setup Repositories
 - Select Technologies
 
+**Actual**: 19:00 - 00:00 (4 hour)
+
 ### Sa
 
 Tasks
@@ -53,6 +55,8 @@ Tasks
 
 Time
 09:00 - 22:00 (13 hours)
+
+**Actual**: 09:00 - 00:00 (15:00 hours)
 
 ### So
 
@@ -70,6 +74,8 @@ Tasks
 Time
 09:00 - 12:00 (3 hours)
 
+**Actual**: 09:00 - 12:30 (3.5 hours)
+
 ## Version controll
 
 - branching strategy: single branch only
@@ -78,3 +84,20 @@ Time
 ## TODO
 
 - what if non Relational DB is asked -> MongoDB but how (Lukas)
+
+## Lessons Learned
+- Color Pallete very useful, Pre Style Guide to just build pages with predefined components
+- Early low fidelity Mockups very useful to get everyone on the same page -> UI
+- Early DB Schema very useful, to get everyone on the same page -> Data
+- Early Adaption of API endpoints for database, to see early issues in DB Schema
+- structure of project (folders, ...) good, but more detailed better
+- Good naming importand and did that aswell - very happy :)
+- 13 Hours Max per Day (Human limit)
+- Good Management is essential, communication
+- Independent working, good work package seperation - constant communication
+- SQLalchemy good, better than expected
+- FastAPI very good can use again. Espeically /docs endpoint
+- uv (python venv manager) - very good, use again
+- Component based JS frontend framework very good (React rather than Angular), good statement management, good integration of API's
+- TS good keep (if experience is there) else fallback to JS
+- 
