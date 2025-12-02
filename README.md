@@ -95,18 +95,17 @@ Time
 - what if non Relational DB is asked -> MongoDB but how (Lukas)
 
 ## Lessons Learned
-- Color Pallete very useful, Pre Style Guide to just build pages with predefined components
-- Early low fidelity Mockups very useful to get everyone on the same page -> UI
-- Early DB Schema very useful, to get everyone on the same page -> Data
-- Early Adaption of API endpoints for database, to see early issues in DB Schema
-- structure of project (folders, ...) good, but more detailed better
-- Good naming importand and did that aswell - very happy :)
+- Color Palette very useful, Pre Style Guide to just build pages with predefined components
+- Early low fidelity Mockups very useful to get everyone on the same page → UI
+- Early DB Schema very useful, to get everyone on the same page → Data
+- Early Adoption of API endpoints for database, to see early issues in DB Schema
+- Structure of project (folders, ...) good, but more detailed better
+- Good naming important and did that as well - very happy :)
 - 13 Hours Max per Day (Human limit)
 - Good Management is essential, communication
-- Independent working, good work package seperation - constant communication
-- SQLalchemy good, better than expected
-- FastAPI very good can use again. Espeically /docs endpoint
+- Independent working, good work package separation - constant communication
+- SQLAlchemy good, better than expected
+- FastAPI very good can use again. Especially /docs endpoint
 - uv (python venv manager) - very good, use again
-- Component based JS frontend framework very good (React rather than Angular), good statement management, good integration of API's
+- Component based JS frontend framework very good (React rather than Angular), good state management, good integration of APIs
 - TS good keep (if experience is there) else fallback to JS
-- 
