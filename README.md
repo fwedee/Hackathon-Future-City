@@ -2,17 +2,26 @@
 
 Link to the competition: https://www.hs-heilbronn.de/de/hackathon
 
+## Installation
+
+### Backend
+
+1. Install [uv](https://docs.astral.sh/uv/) (Python package manager)
+2. Follow the instructions in [backend/README.md](backend/README.md)
+
+### Frontend
+
+1. Install [npm](https://www.npmjs.com/get-npm) (Node.js package manager)
+2. Follow the instructions in [frontend/README.md](frontend/README.md)
+
 ## Tech
 
 - Backend 
   - FastAPI / Flask (Python)
-  - Deps:
-    - pandas (numpy)
-    - scipy
+  - Deps: [pyproject.toml](backend/pyproject.toml)
 - Frontend
   - React (TypeScript)
-  - Deps:
-    - Material UI
+  - Deps: [package.json](frontend/package.json)
 - API sends only JSON no HTML
 - API if necessary REST
 - DB if necessary sqlite3
